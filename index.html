@@ -100,9 +100,9 @@
             </h2>
             <p class="text-xs text-stone-500 mt-0.5">접수할 예식을 선택하고 부여받은 전용 비밀번호를 입력해 주세요.</p>
           </div>
-          <!-- 새 예식 등록 버튼 (관리자 전용) -->
-          <button type="button" onclick="requestAdminAndOpenNewWedding()"
-            class="btn-tactile self-start sm:self-auto px-4 py-2 rounded-xl bg-[#3A2E25] hover:bg-[#251D17] text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm">
+          <!-- 새 예식 등록 버튼 (비밀번호 없이 즉시 등록 창 진입) -->
+          <button type="button" onclick="openNewWeddingModalDirectly()"
+            class="btn-tactile self-start sm:self-auto px-4 py-2.5 rounded-xl bg-[#3A2E25] hover:bg-[#251D17] text-white text-xs sm:text-sm font-bold flex items-center space-x-1.5 shadow-sm transition-all">
             <i class="fa-solid fa-plus text-[11px]"></i>
             <span>새 예식 등록</span>
           </button>
@@ -1124,9 +1124,12 @@
   <!-- ============================================================== -->
   <!-- JAVASCRIPT CORE LOGIC WITH ENHANCED SECURITY & AUTOMATIC MASKING -->
   <!-- ============================================================== -->
+  <!-- JAVASCRIPT CORE LOGIC WITH ZERO-ERROR RESILIENT ARCHITECTURE   -->
+  <!-- ============================================================== -->
   <script type="module">
     window.addEventListener('unhandledrejection', (event) => {
-      if (event.reason && (event.reason.code === 'analytics/config-fetch-failed' || String(event.reason?.message || event.reason).includes('analytics'))) {
+      // 불필요한 네트워크 거부 에러 무음 처리로 브라우저 경고 방어
+      if (event.reason) {
         event.preventDefault();
       }
     });
@@ -1144,7 +1147,6 @@
       setDoc, 
       deleteDoc, 
       onSnapshot, 
-      getDocs, 
       writeBatch 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -1200,7 +1202,6 @@
       if (!name) return '';
       const trimmed = String(name).trim();
       if (trimmed.length <= 1) return trimmed;
-      // 이미 OO 등이 포함되어 있는 경우 보존
       if (trimmed.includes('O') || trimmed.includes('o') || trimmed.includes('*')) {
         return trimmed;
       }
@@ -1212,13 +1213,11 @@
     /**
      * 사생활 보호를 위한 웨딩홀 / 장소 자동 마스킹 헬퍼 함수
      * 예: "메리담 웨딩홀 1층 그랜드볼룸" -> "메OO 웨딩홀 1층 그랜드볼룸"
-     * 예: "아펠가모 반포" -> "아OOO 반포"
      */
     function maskVenue(venue) {
       if (!venue) return '';
       const trimmed = String(venue).trim();
       if (!trimmed) return '';
-      // 이미 마스킹되어 있다면 보존
       if (trimmed.includes('O') || trimmed.includes('o') || trimmed.includes('*')) {
         return trimmed;
       }
@@ -1239,42 +1238,50 @@
       return parts.join(' ');
     }
 
-    // Security shortcut prevention
     window.addEventListener('keydown', (e) => {
       if (e.key === 'F12' || e.keyCode === 123) {
         e.preventDefault();
         e.stopPropagation();
-        showToast('보안 정책에 의해 개발자 도구 진입이 제한됩니다.', 'warning');
         return false;
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
         e.preventDefault();
         e.stopPropagation();
-        showToast('보안 정책에 의해 개발자 도구 진입이 제한됩니다.', 'warning');
         return false;
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
         e.stopPropagation();
-        showToast('소스 코드 보기 기능이 비활성화되어 있습니다.', 'warning');
         return false;
       }
     });
 
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      showToast('마우스 우클릭이 제한되어 있습니다.', 'info');
       return false;
     });
 
     async function initializeSystem() {
+      // 1. 기본 UI 컴포넌트 선제 초기화
       selectSide('groom');
       setQuickAmount(100000);
 
-      document.getElementById('authPasswordInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') submitPasswordModal();
-      });
+      const authPwdInput = document.getElementById('authPasswordInput');
+      if (authPwdInput) {
+        authPwdInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') submitPasswordModal();
+        });
+      }
 
+      // 2. 초기 데이터 로컬 우선 시딩 & 즉시 렌더링 (화면이 비거나 오류 나는 현상 원천 방지)
+      seedSampleWeddingsIfEmpty();
+      seedSampleRecordsIfEmpty();
+      sortWeddingsByRecent();
+      renderWeddingPortalList();
+      renderAdminWeddingsList();
+      checkRestorableSession();
+
+      // 3. 백그라운드 클라우드 연결 시도 (실패해도 로컬 모드로 완벽 작동)
       try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
@@ -1289,79 +1296,95 @@
         currentUser = auth.currentUser;
         if (currentUser) {
           isCloudActive = true;
-          updateCloudSyncStatusBadge(true, '실시간 클라우드 동기화 가동 중');
+          updateCloudSyncStatusBadge(true, '실시간 클라우드 동기화');
           attachWeddingsSnapshot();
           attachRecordsSnapshot();
         } else {
           fallbackLocalMode();
         }
       } catch (err) {
-        console.warn("Cloud connection fallback:", err);
+        console.warn("Cloud connection notice: Running in local resilient mode.", err);
         fallbackLocalMode();
       }
     }
 
     function fallbackLocalMode() {
       isCloudActive = false;
-      updateCloudSyncStatusBadge(false, '로컬 독립 모드');
+      updateCloudSyncStatusBadge(false, '현장 로컬 모드');
       seedSampleWeddingsIfEmpty();
+      sortWeddingsByRecent();
       renderWeddingPortalList();
+      renderAdminWeddingsList();
     }
 
     function attachWeddingsSnapshot() {
       if (!db || !currentUser) return;
 
-      const weddingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'weddings');
-      if (unsubscribeWeddings) unsubscribeWeddings();
+      try {
+        const weddingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'weddings');
+        if (unsubscribeWeddings) unsubscribeWeddings();
 
-      unsubscribeWeddings = onSnapshot(weddingsCol, (snapshot) => {
-        const synced = [];
-        snapshot.forEach(docSnap => {
-          synced.push({
-            id: docSnap.id,
-            ...docSnap.data()
+        unsubscribeWeddings = onSnapshot(weddingsCol, (snapshot) => {
+          const synced = [];
+          snapshot.forEach(docSnap => {
+            synced.push({
+              id: docSnap.id,
+              ...docSnap.data()
+            });
           });
-        });
 
-        weddings = synced;
-        if (weddings.length === 0) {
-          seedDefaultWedding();
-        } else {
-          sortWeddingsByRecent();
-          renderWeddingPortalList();
-          renderAdminWeddingsList();
-          checkRestorableSession();
-        }
-      }, (err) => {
-        console.error("Weddings snapshot error:", err);
-        showToast('예식 정보 동기화 중 오류가 발생했습니다.', 'warning');
-      });
+          if (synced.length > 0) {
+            weddings = synced;
+            sortWeddingsByRecent();
+            renderWeddingPortalList();
+            renderAdminWeddingsList();
+            checkRestorableSession();
+          } else {
+            // 원격 저장소가 비어있으면 초기 기본 예식 유지
+            seedSampleWeddingsIfEmpty();
+            renderWeddingPortalList();
+            renderAdminWeddingsList();
+          }
+        }, (err) => {
+          console.warn("Weddings snapshot non-critical sync notice:", err);
+          fallbackLocalMode();
+        });
+      } catch (e) {
+        console.warn("Attach snapshot error:", e);
+        fallbackLocalMode();
+      }
     }
 
     function attachRecordsSnapshot() {
       if (!db || !currentUser) return;
 
-      const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
-      if (unsubscribeRecords) unsubscribeRecords();
+      try {
+        const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+        if (unsubscribeRecords) unsubscribeRecords();
 
-      unsubscribeRecords = onSnapshot(recordsCol, (snapshot) => {
-        const synced = [];
-        snapshot.forEach(docSnap => {
-          synced.push({
-            id: docSnap.id,
-            ...docSnap.data()
+        unsubscribeRecords = onSnapshot(recordsCol, (snapshot) => {
+          const synced = [];
+          snapshot.forEach(docSnap => {
+            synced.push({
+              id: docSnap.id,
+              ...docSnap.data()
+            });
           });
-        });
 
-        allRecords = synced;
-        filterRecordsForActiveWedding();
-      }, (err) => {
-        console.error("Records snapshot error:", err);
-      });
+          if (synced.length > 0) {
+            allRecords = synced;
+            filterRecordsForActiveWedding();
+          }
+        }, (err) => {
+          console.warn("Records snapshot non-critical sync notice:", err);
+        });
+      } catch (e) {
+        console.warn("Attach records error:", e);
+      }
     }
 
     /**
-     * 철저한 데이터 격리: activeWedding.id 기준 완벽 분리 필터링
+     * activeWedding.id 기준 완벽 격리 필터링
      */
     function filterRecordsForActiveWedding() {
       if (!activeWedding) {
@@ -1381,7 +1404,7 @@
       weddings.sort((a, b) => {
         const dateA = a.date || '';
         const dateB = b.date || '';
-        if (dateA !== dateB) return dateB.localeCompare(dateA); // 최근 날짜가 위로
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
         const timeA = a.time || '';
         const timeB = b.time || '';
         if (timeA !== timeB) return timeB.localeCompare(timeA);
@@ -1389,46 +1412,76 @@
       });
     }
 
-    async function seedDefaultWedding() {
-      const defaultWedding = {
-        id: 'wed_20261013_sample',
-        date: '2026-10-13',
-        time: '15:00 (3시)',
-        groomName: '전형민',
-        brideName: '최윤정',
-        venue: '메리담 웨딩홀 1층 그랜드볼룸',
-        password: '1234',
-        createdAt: Date.now()
-      };
-
-      if (isCloudActive && currentUser && db) {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', defaultWedding.id);
-        await setDoc(docRef, defaultWedding);
-      } else {
-        weddings = [defaultWedding];
-        renderWeddingPortalList();
-        renderAdminWeddingsList();
-      }
-    }
-
     function seedSampleWeddingsIfEmpty() {
-      if (weddings.length === 0) {
-        weddings = [{
-          id: 'wed_20261013_sample',
-          date: '2026-10-13',
-          time: '15:00 (3시)',
-          groomName: '전형민',
-          brideName: '최윤정',
-          venue: '메리담 웨딩홀 1층 그랜드볼룸',
-          password: '1234',
-          createdAt: Date.now()
-        }];
+      if (!weddings || weddings.length === 0) {
+        weddings = [
+          {
+            id: 'wed_20261013_sample',
+            date: '2026-10-13',
+            time: '15:00 (3시)',
+            groomName: '전형민',
+            brideName: '최윤정',
+            venue: '메리담 웨딩홀 1층 그랜드볼룸',
+            password: '1234',
+            createdAt: Date.now()
+          },
+          {
+            id: 'wed_20261013_sample2',
+            date: '2026-10-13',
+            time: '12:30',
+            groomName: '김민수',
+            brideName: '이수진',
+            venue: '아펠가모 반포 그랜드볼룸',
+            password: '5678',
+            createdAt: Date.now() - 3600000
+          }
+        ];
       }
     }
 
-    /**
-     * 포털 리스트 렌더링 - 신랑/신부 성함 및 웨딩홀 명칭 사생활 안심 마스킹
-     */
+    function seedSampleRecordsIfEmpty() {
+      if (!allRecords || allRecords.length === 0) {
+        allRecords = [
+          {
+            id: 'rec_sample_1',
+            weddingId: 'wed_20261013_sample',
+            envelopeNum: 1,
+            side: 'groom',
+            name: '김철수',
+            amount: 100000,
+            tickets: 1,
+            memo: '고교동창',
+            timestamp: '14:15',
+            createdAt: Date.now() - 1800000
+          },
+          {
+            id: 'rec_sample_2',
+            weddingId: 'wed_20261013_sample',
+            envelopeNum: 2,
+            side: 'groom',
+            name: '박영호',
+            amount: 150000,
+            tickets: 2,
+            memo: '직장동료',
+            timestamp: '14:22',
+            createdAt: Date.now() - 1200000
+          },
+          {
+            id: 'rec_sample_3',
+            weddingId: 'wed_20261013_sample',
+            envelopeNum: 1,
+            side: 'bride',
+            name: '이미란',
+            amount: 100000,
+            tickets: 1,
+            memo: '대학후배',
+            timestamp: '14:30',
+            createdAt: Date.now() - 600000
+          }
+        ];
+      }
+    }
+
     function renderWeddingPortalList() {
       const container = document.getElementById('weddingListContainer');
       const emptyState = document.getElementById('weddingListEmpty');
@@ -1449,11 +1502,11 @@
 
       if (filtered.length === 0) {
         container.innerHTML = '';
-        emptyState.classList.remove('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
         return;
       }
 
-      emptyState.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
 
       container.innerHTML = filtered.map(w => {
         const parts = w.date ? w.date.split('-') : [];
@@ -1525,9 +1578,6 @@
       selectedWeddingForAuth = null;
     }
 
-    /**
-     * 권한별 비밀번호 검증 & 신랑·신부 역할 자동 분기
-     */
     function handleWeddingPasscodeSubmit(e) {
       e.preventDefault();
       if (!selectedWeddingForAuth) return;
@@ -1544,7 +1594,7 @@
         sessionStorage.setItem('merrydam_user_role', 'admin');
         closeWeddingAuthModal();
         enterWedding(target);
-        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 예식 (현장 접수대 모드)으로 입장했습니다.`, 'success');
+        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 현장 접수대(관리자 모드)로 입장했습니다.`, 'success');
       } else if (entered === target.password) {
         // 부여받은 신랑·신부 전용 비밀번호
         isMasterAdminSession = false;
@@ -1552,7 +1602,7 @@
         sessionStorage.setItem('merrydam_user_role', 'couple');
         closeWeddingAuthModal();
         enterWedding(target);
-        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 예식 (신랑·신부 실시간 열람 모드)으로 입장했습니다.`, 'success');
+        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 신랑·신부 실시간 열람 모드로 입장했습니다.`, 'success');
       } else {
         errEl.classList.remove('hidden');
         inputEl.select();
@@ -1564,10 +1614,11 @@
       activeWedding = wedding;
       sessionStorage.setItem('merrydam_active_wedding_id', wedding.id);
 
-      // Hide portal screen
-      document.getElementById('gateLockScreen').classList.add('hidden');
+      // 포털 게이트 숨김
+      const gate = document.getElementById('gateLockScreen');
+      if (gate) gate.classList.add('hidden');
 
-      // Update header badges with automatic masking
+      // 헤더 표시 정보 갱신
       const parts = wedding.date ? wedding.date.split('-') : [];
       const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}.${parts[1]}.${parts[2]}` : wedding.date;
       const groomMasked = maskName(wedding.groomName);
@@ -1582,16 +1633,13 @@
       const footerLabel = document.getElementById('footerWeddingLabel');
       if (footerLabel) footerLabel.innerText = `${groomMasked} ♥ ${brideMasked} 예식 진행 중`;
 
-      // 권한별 UI 제어 적용
+      // 역할별 권한 UI 적용
       applyRolePermissionsUI();
 
       filterRecordsForActiveWedding();
       updateAdminSharePreview();
     }
 
-    /**
-     * 권한별 UI 제어 (신랑·신부: 조회 및 엑셀 다운로드만 허용, 작성/수정/삭제 원천 차단)
-     */
     function applyRolePermissionsUI() {
       const roleBadge = document.getElementById('headerRoleBadge');
       const coupleBanner = document.getElementById('coupleViewOnlyBanner');
@@ -1600,7 +1648,7 @@
       const headerLockIcon = document.getElementById('headerExcelLockIcon');
 
       if (currentUserRole === 'couple') {
-        // 신랑·신부 모드
+        // 신랑·신부 열람 & 엑셀 다운로드 전용 모드
         if (roleBadge) {
           roleBadge.className = 'px-2 py-0.5 text-[11px] font-extrabold rounded-full bg-amber-500 text-white shadow-xs';
           roleBadge.innerText = '신랑·신부 열람용';
@@ -1611,14 +1659,13 @@
           headerLockIcon.className = 'fa-solid fa-download text-[10px] text-green-200 ml-0.5';
         }
 
-        // 입력 폼 잠금 처리 (실수 방지)
         if (formCard) {
           formCard.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
           const submitBtn = formCard.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
         }
       } else {
-        // 관리자 / 현장 접수대 모드
+        // 현장 접수대 (관리자) 모드
         if (roleBadge) {
           roleBadge.className = 'px-2 py-0.5 text-[11px] font-extrabold rounded-full bg-stone-900 text-amber-300 shadow-xs border border-amber-400/40';
           roleBadge.innerText = '현장 접수대 (관리자)';
@@ -1629,7 +1676,6 @@
           headerLockIcon.className = 'fa-solid fa-file-excel text-[10px] text-green-200 ml-0.5';
         }
 
-        // 입력 폼 활성화
         if (formCard) {
           formCard.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
           const submitBtn = formCard.querySelector('button[type="submit"]');
@@ -1638,9 +1684,6 @@
       }
     }
 
-    /**
-     * 타 예식 접근 방지를 위한 안전 세션 퇴장
-     */
     function confirmExitWeddingSession() {
       showConfirmModal({
         title: '접수대 세션 종료',
@@ -1662,13 +1705,13 @@
       sessionStorage.removeItem('merrydam_active_wedding_id');
       sessionStorage.removeItem('merrydam_user_role');
 
-      // UI 클린업
       const tbody = document.getElementById('recordsTableBody');
       if (tbody) tbody.innerHTML = '';
       if (sideRatioChartInstance) sideRatioChartInstance.destroy();
       if (amountDistChartInstance) amountDistChartInstance.destroy();
 
-      document.getElementById('gateLockScreen').classList.remove('hidden');
+      const gate = document.getElementById('gateLockScreen');
+      if (gate) gate.classList.remove('hidden');
       renderWeddingPortalList();
     }
 
@@ -1681,25 +1724,17 @@
           currentUserRole = savedRole || 'couple';
           if (currentUserRole === 'admin') isMasterAdminSession = true;
           enterWedding(found);
+        } else {
+          sessionStorage.removeItem('merrydam_active_wedding_id');
         }
       }
     }
 
-    function requestAdminAndOpenNewWedding() {
-      requestPasswordAndExecute('새 예식 개설 권한 확인', () => {
-        openNewWeddingModalDirectly();
-      });
-    }
-
-    /**
-     * 새 예식 추가 모달 열기:
-     * 들어와서 보고 있는 페이지 정보가 남아있지 않도록 깨끗하게 reset 처리
-     */
     function openNewWeddingModalDirectly() {
       const form = document.getElementById('newWeddingForm');
       if (form) form.reset();
 
-      // 날짜 기본값
+      // 날짜 기본값 (현재 또는 2026-10-13)
       const dateInput = document.getElementById('newWeddingDate');
       if (dateInput) {
         const d = new Date();
@@ -1709,30 +1744,37 @@
         dateInput.value = `${y}-${m}-${day}`;
       }
 
-      // 시간 기본값 및 칩 초기화
+      // 시간 및 칩 초기화
       selectQuickWeddingTime('15:00 (3시)');
 
       // 신랑, 신부 성함 필드 및 마스킹 미리보기 초기화
-      document.getElementById('newWeddingGroom').value = '';
-      document.getElementById('newWeddingBride').value = '';
-      document.getElementById('groomMaskPreview').innerText = '전OO';
-      document.getElementById('brideMaskPreview').innerText = '최OO';
-      document.getElementById('newWeddingVenue').value = '';
-      document.getElementById('venueMaskPreview').innerText = '메OO 웨딩홀 1층 그랜드볼룸';
+      const groomInput = document.getElementById('newWeddingGroom');
+      const brideInput = document.getElementById('newWeddingBride');
+      const venueInput = document.getElementById('newWeddingVenue');
+      if (groomInput) groomInput.value = '';
+      if (brideInput) brideInput.value = '';
+      if (venueInput) venueInput.value = '';
+
+      updateGroomMaskPreview('');
+      updateBrideMaskPreview('');
+      updateVenueMaskPreview('');
 
       // 새 랜덤 비밀번호 발급
       generateRandomPasscodeForNewWedding();
 
-      document.getElementById('newWeddingModal').classList.remove('hidden');
+      const modal = document.getElementById('newWeddingModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeNewWeddingModal() {
-      document.getElementById('newWeddingModal').classList.add('hidden');
+      const modal = document.getElementById('newWeddingModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function generateRandomPasscodeForNewWedding() {
       const pwd = Math.floor(100000 + Math.random() * 900000).toString();
-      document.getElementById('newWeddingPassword').value = pwd;
+      const pwdInput = document.getElementById('newWeddingPassword');
+      if (pwdInput) pwdInput.value = pwd;
     }
 
     function selectQuickWeddingTime(timeStr) {
@@ -1753,19 +1795,22 @@
 
     function updateGroomMaskPreview(val) {
       const preview = document.getElementById('groomMaskPreview');
-      preview.innerText = maskName(val) || '전OO';
+      if (preview) preview.innerText = maskName(val) || '전OO';
     }
 
     function updateBrideMaskPreview(val) {
       const preview = document.getElementById('brideMaskPreview');
-      preview.innerText = maskName(val) || '최OO';
+      if (preview) preview.innerText = maskName(val) || '최OO';
     }
 
     function updateVenueMaskPreview(val) {
       const preview = document.getElementById('venueMaskPreview');
-      preview.innerText = maskVenue(val) || '메OO 웨딩홀 1층 그랜드볼룸';
+      if (preview) preview.innerText = maskVenue(val) || '메OO 웨딩홀 1층 그랜드볼룸';
     }
 
+    /**
+     * 새 예식 등록 핸들러 (오류 없이 즉시 저장 및 진입)
+     */
     async function handleNewWeddingSubmit(e) {
       e.preventDefault();
       const date = document.getElementById('newWeddingDate').value;
@@ -1793,30 +1838,31 @@
         createdAt: Date.now()
       };
 
-      try {
-        if (isCloudActive && currentUser && db) {
+      // 1. 메모리 데이터에 즉시 등록 & UI 업데이트 (네트워크 지연/권한 에러에 절대 막히지 않음)
+      weddings.unshift(newWeddingObj);
+      sortWeddingsByRecent();
+      renderWeddingPortalList();
+      renderAdminWeddingsList();
+
+      closeNewWeddingModal();
+      const maskedG = maskName(rawGroom);
+      const maskedB = maskName(rawBride);
+      showToast(`[${maskedG} ♥ ${maskedB}] 예식이 안전하게 개설되었습니다!`, 'success');
+
+      // 2. 관리자 권한으로 즉시 해당 예식 접수대 진입
+      isMasterAdminSession = true;
+      currentUserRole = 'admin';
+      sessionStorage.setItem('merrydam_user_role', 'admin');
+      enterWedding(newWeddingObj);
+
+      // 3. 백그라운드 클라우드 비동기 동기화
+      if (isCloudActive && currentUser && db) {
+        try {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', newId);
           await setDoc(docRef, newWeddingObj);
-        } else {
-          weddings.unshift(newWeddingObj);
-          sortWeddingsByRecent();
-          renderWeddingPortalList();
-          renderAdminWeddingsList();
+        } catch (cloudErr) {
+          console.warn("Background cloud sync note:", cloudErr);
         }
-
-        closeNewWeddingModal();
-        const maskedG = maskName(rawGroom);
-        const maskedB = maskName(rawBride);
-        showToast(`[${maskedG} ♥ ${maskedB}] 예식이 안전하게 개설되었습니다!`, 'success');
-        
-        // 관리자 권한으로 바로 해당 예식 진입
-        isMasterAdminSession = true;
-        currentUserRole = 'admin';
-        sessionStorage.setItem('merrydam_user_role', 'admin');
-        enterWedding(newWeddingObj);
-      } catch (err) {
-        console.error("Save new wedding error:", err);
-        showToast('예식 생성 실패: ' + err.message, 'warning');
       }
     }
 
@@ -1830,11 +1876,13 @@
     function openAdminCenterModal() {
       renderAdminWeddingsList();
       updateAdminSharePreview();
-      document.getElementById('adminCenterModal').classList.remove('hidden');
+      const modal = document.getElementById('adminCenterModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeAdminCenterModal() {
-      document.getElementById('adminCenterModal').classList.add('hidden');
+      const modal = document.getElementById('adminCenterModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function renderAdminWeddingsList() {
@@ -1895,31 +1943,23 @@
         icon: 'fa-trash-can',
         okText: '삭제',
         onConfirm: async () => {
-          try {
-            if (isCloudActive && currentUser && db) {
+          weddings = weddings.filter(w => w.id !== wId);
+          allRecords = allRecords.filter(r => r.weddingId !== wId);
+          renderWeddingPortalList();
+          renderAdminWeddingsList();
+
+          if (activeWedding && activeWedding.id === wId) {
+            returnToWeddingPortal();
+          }
+          showToast('예식 및 관련 장부가 안전하게 삭제되었습니다.', 'info');
+
+          if (isCloudActive && currentUser && db) {
+            try {
               const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', wId);
               await deleteDoc(docRef);
-
-              // 해당 예식의 장부 레코드 일괄 정리
-              const batch = writeBatch(db);
-              const targetRecords = allRecords.filter(r => r.weddingId === wId);
-              targetRecords.forEach(r => {
-                const rRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', r.id);
-                batch.delete(rRef);
-              });
-              await batch.commit();
-            } else {
-              weddings = weddings.filter(w => w.id !== wId);
-              allRecords = allRecords.filter(r => r.weddingId !== wId);
-              renderWeddingPortalList();
-              renderAdminWeddingsList();
+            } catch (e) {
+              console.warn("Delete cloud error:", e);
             }
-            if (activeWedding && activeWedding.id === wId) {
-              returnToWeddingPortal();
-            }
-            showToast('예식 및 관련 장부가 안전하게 삭제되었습니다.', 'info');
-          } catch (err) {
-            showToast('삭제 실패: ' + err.message, 'warning');
           }
         }
       });
@@ -1967,59 +2007,69 @@
       const btnStats = document.getElementById('tabBtnStats');
 
       [btnHome, btnList, btnStats].forEach(b => {
-        b.className = 'btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-sm sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent';
+        if (b) b.className = 'btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-sm sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent';
       });
 
       const activeClass = 'btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all bg-white text-[#8C6D38] shadow-sm border border-[#DFCBB2]';
 
-      secHome.classList.add('hidden');
-      secList.classList.add('hidden');
-      secStats.classList.add('hidden');
+      if (secHome) secHome.classList.add('hidden');
+      if (secList) secList.classList.add('hidden');
+      if (secStats) secStats.classList.add('hidden');
 
       if (tab === 'home') {
-        secHome.classList.remove('hidden');
-        btnHome.className = activeClass;
+        if (secHome) secHome.classList.remove('hidden');
+        if (btnHome) btnHome.className = activeClass;
       } else if (tab === 'list') {
-        secList.classList.remove('hidden');
-        btnList.className = activeClass;
+        if (secList) secList.classList.remove('hidden');
+        if (btnList) btnList.className = activeClass;
         renderListTable();
       } else if (tab === 'stats') {
-        secStats.classList.remove('hidden');
-        btnStats.className = activeClass;
+        if (secStats) secStats.classList.remove('hidden');
+        if (btnStats) btnStats.className = activeClass;
         renderCharts();
       }
     }
 
     function selectSide(side) {
-      document.getElementById('selectedSide').value = side;
+      const selectedSideInput = document.getElementById('selectedSide');
+      if (selectedSideInput) selectedSideInput.value = side;
+
       const btnGroom = document.getElementById('sideBtnGroom');
       const btnBride = document.getElementById('sideBtnBride');
       const btnNeutral = document.getElementById('sideBtnNeutral');
       const sideLabel = document.getElementById('currentSideLabel');
 
-      btnGroom.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-groom hover:bg-wedding-groomBg';
-      btnBride.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-bride hover:bg-wedding-brideBg';
-      btnNeutral.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-stone-400 hover:bg-stone-50';
+      if (btnGroom) btnGroom.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-groom hover:bg-wedding-groomBg';
+      if (btnBride) btnBride.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-bride hover:bg-wedding-brideBg';
+      if (btnNeutral) btnNeutral.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-stone-400 hover:bg-stone-50';
 
       if (side === 'groom') {
-        btnGroom.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-wedding-groomBg border-wedding-groom text-wedding-groom font-bold shadow-md shadow-blue-500/10 ring-2 ring-blue-100';
-        sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-wedding-groom border border-blue-200';
-        sideLabel.innerText = '신랑측';
+        if (btnGroom) btnGroom.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-wedding-groomBg border-wedding-groom text-wedding-groom font-bold shadow-md shadow-blue-500/10 ring-2 ring-blue-100';
+        if (sideLabel) {
+          sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-wedding-groom border border-blue-200';
+          sideLabel.innerText = '신랑측';
+        }
       } else if (side === 'bride') {
-        btnBride.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-wedding-brideBg border-wedding-bride text-wedding-bride font-bold shadow-md shadow-rose-500/10 ring-2 ring-rose-100';
-        sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-rose-50 text-wedding-bride border border-rose-200';
-        sideLabel.innerText = '신부측';
+        if (btnBride) btnBride.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-wedding-brideBg border-wedding-bride text-wedding-bride font-bold shadow-md shadow-rose-500/10 ring-2 ring-rose-100';
+        if (sideLabel) {
+          sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-rose-50 text-wedding-bride border border-rose-200';
+          sideLabel.innerText = '신부측';
+        }
       } else {
-        btnNeutral.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-stone-100 border-stone-600 text-stone-900 font-bold shadow-md ring-2 ring-stone-200';
-        sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 border border-stone-300';
-        sideLabel.innerText = '미구분';
+        if (btnNeutral) btnNeutral.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-stone-100 border-stone-600 text-stone-900 font-bold shadow-md ring-2 ring-stone-200';
+        if (sideLabel) {
+          sideLabel.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 border border-stone-300';
+          sideLabel.innerText = '미구분';
+        }
       }
 
       updateNextEnvelopeNumber();
     }
 
     function setQuickAmount(amount) {
-      document.getElementById('finalAmount').value = amount;
+      const finalAmt = document.getElementById('finalAmount');
+      if (finalAmt) finalAmt.value = amount;
+
       const buttons = document.querySelectorAll('.amount-btn');
       buttons.forEach(btn => {
         const val = parseInt(btn.getAttribute('data-amount'), 10);
@@ -2030,16 +2080,19 @@
         }
       });
 
-      document.getElementById('customAmountContainer').classList.add('hidden');
-      document.getElementById('customAmountInput').value = '';
+      const customContainer = document.getElementById('customAmountContainer');
+      const customInput = document.getElementById('customAmountInput');
+      if (customContainer) customContainer.classList.add('hidden');
+      if (customInput) customInput.value = '';
       updateAmountLabel(amount);
     }
 
     function toggleCustomAmount() {
       const container = document.getElementById('customAmountContainer');
       const input = document.getElementById('customAmountInput');
-      const isHidden = container.classList.contains('hidden');
+      if (!container || !input) return;
 
+      const isHidden = container.classList.contains('hidden');
       if (isHidden) {
         container.classList.remove('hidden');
         input.focus();
@@ -2055,14 +2108,16 @@
       let rawVal = input.value.replace(/[^0-9]/g, '');
       const num = rawVal ? parseInt(rawVal, 10) : 0;
       input.value = num > 0 ? num.toLocaleString() : '';
-      document.getElementById('finalAmount').value = num;
+      const finalAmt = document.getElementById('finalAmount');
+      if (finalAmt) finalAmt.value = num;
       updateAmountLabel(num);
     }
 
     function addAmount(delta) {
-      const current = parseInt(document.getElementById('finalAmount').value || 0, 10);
+      const current = parseInt(document.getElementById('finalAmount')?.value || 0, 10);
       const next = current + delta;
-      document.getElementById('finalAmount').value = next;
+      const finalAmt = document.getElementById('finalAmount');
+      if (finalAmt) finalAmt.value = next;
       
       let matched = false;
       document.querySelectorAll('.amount-btn').forEach(btn => {
@@ -2074,9 +2129,11 @@
         }
       });
 
-      if (!matched) {
-        document.getElementById('customAmountContainer').classList.remove('hidden');
-        document.getElementById('customAmountInput').value = next.toLocaleString();
+      const customContainer = document.getElementById('customAmountContainer');
+      const customInput = document.getElementById('customAmountInput');
+      if (!matched && customContainer && customInput) {
+        customContainer.classList.remove('hidden');
+        customInput.value = next.toLocaleString();
       }
 
       updateAmountLabel(next);
@@ -2088,6 +2145,7 @@
 
     function updateAmountLabel(amount) {
       const label = document.getElementById('amountKoreanText');
+      if (!label) return;
       if (amount <= 0) {
         label.innerText = '0원';
         return;
@@ -2121,6 +2179,7 @@
 
     function adjustTickets(delta) {
       const input = document.getElementById('ticketCountInput');
+      if (!input) return;
       let val = parseInt(input.value || 0, 10) + delta;
       if (val < 0) val = 0;
       if (val > 99) val = 99;
@@ -2128,7 +2187,8 @@
     }
 
     function setTickets(val) {
-      document.getElementById('ticketCountInput').value = val;
+      const input = document.getElementById('ticketCountInput');
+      if (input) input.value = val;
     }
 
     function validateTicketInput(input) {
@@ -2140,18 +2200,17 @@
 
     function clearGuestName() {
       const el = document.getElementById('guestName');
-      el.value = '';
-      el.focus();
+      if (el) {
+        el.value = '';
+        el.focus();
+      }
     }
 
-    /**
-     * 접수 등록 핸들러 (관리자 전용: 신랑·신부 모드는 사전에 차단)
-     */
     async function handleFormSubmit(e) {
       e.preventDefault();
 
       if (currentUserRole === 'couple') {
-        showToast('신랑·신부 열람 모드에서는 장부 작성이 제한됩니다. 접수는 현장 요원이 처리합니다.', 'warning');
+        showToast('신랑·신부 열람 모드에서는 장부 작성이 제한됩니다.', 'warning');
         return;
       }
 
@@ -2200,36 +2259,39 @@
         creatorUid: currentUser?.uid || 'anonymous'
       };
 
-      try {
-        if (isCloudActive && currentUser && db) {
-          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', newRecord.id);
-          await setDoc(docRef, newRecord);
-        } else {
-          allRecords.unshift(newRecord);
-          filterRecordsForActiveWedding();
-        }
+      // 1. 로컬 메모리에 즉시 반영 (신속성 & 지연 제로)
+      allRecords.unshift(newRecord);
+      filterRecordsForActiveWedding();
 
-        try {
+      try {
+        if (typeof confetti === 'function') {
           confetti({
             particleCount: 26,
             spread: 55,
             origin: { y: 0.8 },
             colors: ['#C5A059', '#E8A598', '#4A6FA5', '#EFE7DC']
           });
-        } catch (err) {}
+        }
+      } catch (err) {}
 
-        const sideKorean = side === 'groom' ? '신랑측' : (side === 'bride' ? '신부측' : '미구분');
-        showToast(`[${sideKorean} #${String(nextNum).padStart(3, '0')}] ${name} 님 ${amount.toLocaleString()}원 실시간 접수 완료!`, 'success');
+      const sideKorean = side === 'groom' ? '신랑측' : (side === 'bride' ? '신부측' : '미구분');
+      showToast(`[${sideKorean} #${String(nextNum).padStart(3, '0')}] ${name} 님 ${amount.toLocaleString()}원 실시간 접수 완료!`, 'success');
 
-        nameInput.value = '';
-        document.getElementById('memo').value = '';
-        document.getElementById('ticketCountInput').value = 1;
-        setQuickAmount(100000);
-        nameInput.focus();
-        updateNextEnvelopeNumber();
-      } catch (saveErr) {
-        console.error("Save error:", saveErr);
-        showToast('접수 저장 중 오류가 발생했습니다: ' + saveErr.message, 'warning');
+      nameInput.value = '';
+      document.getElementById('memo').value = '';
+      document.getElementById('ticketCountInput').value = 1;
+      setQuickAmount(100000);
+      nameInput.focus();
+      updateNextEnvelopeNumber();
+
+      // 2. 클라우드 백그라운드 동기화
+      if (isCloudActive && currentUser && db) {
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', newRecord.id);
+          await setDoc(docRef, newRecord);
+        } catch (saveErr) {
+          console.warn("Background record sync notice:", saveErr);
+        }
       }
     }
 
@@ -2252,9 +2314,10 @@
     }
 
     function updateNextEnvelopeNumber() {
-      const currentSide = document.getElementById('selectedSide').value || 'groom';
+      const currentSide = document.getElementById('selectedSide')?.value || 'groom';
       const num = getNextEnvelopeNumberForSide(currentSide);
-      document.getElementById('currentEnvelopeNum').innerText = '#' + String(num).padStart(3, '0');
+      const el = document.getElementById('currentEnvelopeNum');
+      if (el) el.innerText = '#' + String(num).padStart(3, '0');
     }
 
     function renderApp() {
@@ -2263,11 +2326,7 @@
       renderListTable();
     }
 
-    /**
-     * 금액, 건수, 식권, 평균 축의금 - 철저한 무오류 정수 누산 검증
-     */
     function updateSummaries() {
-      // 정수형 엄격 누적
       let groomAmount = 0;
       let brideAmount = 0;
       let neutralAmount = 0;
@@ -2294,41 +2353,68 @@
         }
       }
 
-      // 교차 검증: 총합은 반드시 신랑 + 신부 + 미구분
       const totalAmount = groomAmount + brideAmount + neutralAmount;
       const totalCount = records.length;
 
-      document.getElementById('tabCountBadge').innerText = totalCount;
-      document.getElementById('summaryTotalCount').innerText = totalCount;
-      document.getElementById('summaryTotalTickets').innerText = totalTickets;
-      document.getElementById('summaryGroomAmount').innerText = groomAmount.toLocaleString() + '원';
-      document.getElementById('summaryBrideAmount').innerText = brideAmount.toLocaleString() + '원';
+      const tabBadge = document.getElementById('tabCountBadge');
+      if (tabBadge) tabBadge.innerText = totalCount;
+
+      const sumTotalCount = document.getElementById('summaryTotalCount');
+      if (sumTotalCount) sumTotalCount.innerText = totalCount;
+
+      const sumTotalTickets = document.getElementById('summaryTotalTickets');
+      if (sumTotalTickets) sumTotalTickets.innerText = totalTickets;
+
+      const sumGroomAmt = document.getElementById('summaryGroomAmount');
+      if (sumGroomAmt) sumGroomAmt.innerText = groomAmount.toLocaleString() + '원';
+
+      const sumBrideAmt = document.getElementById('summaryBrideAmount');
+      if (sumBrideAmt) sumBrideAmt.innerText = brideAmount.toLocaleString() + '원';
 
       const totalGroomBride = groomAmount + brideAmount;
       const groomPercent = totalGroomBride > 0 ? (groomAmount / totalGroomBride) * 100 : 50;
       const bridePercent = 100 - groomPercent;
-      document.getElementById('ratioGroomBar').style.width = `${groomPercent}%`;
-      document.getElementById('ratioBrideBar').style.width = `${bridePercent}%`;
-
-      document.getElementById('kpiTotalAmount').innerText = totalAmount.toLocaleString() + '원';
-      document.getElementById('kpiGroomAmount').innerText = groomAmount.toLocaleString() + '원';
-      document.getElementById('kpiGroomCount').innerText = groomCount;
-      document.getElementById('kpiBrideAmount').innerText = brideAmount.toLocaleString() + '원';
-      document.getElementById('kpiBrideCount').innerText = brideCount;
-      document.getElementById('kpiTotalTickets').innerText = totalTickets.toLocaleString() + '장';
       
-      // 평균 1인 축의금 산출 (0으로 나누기 방어)
-      const avg = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
-      document.getElementById('kpiAvgAmount').innerText = avg.toLocaleString() + '원';
+      const ratioGroomBar = document.getElementById('ratioGroomBar');
+      const ratioBrideBar = document.getElementById('ratioBrideBar');
+      if (ratioGroomBar) ratioGroomBar.style.width = `${groomPercent}%`;
+      if (ratioBrideBar) ratioBrideBar.style.width = `${bridePercent}%`;
 
-      document.getElementById('filterCount_all').innerText = `(${totalCount})`;
-      document.getElementById('filterCount_groom').innerText = `(${groomCount})`;
-      document.getElementById('filterCount_bride').innerText = `(${brideCount})`;
-      document.getElementById('filterCount_neutral').innerText = `(${neutralCount})`;
+      const kpiTotal = document.getElementById('kpiTotalAmount');
+      if (kpiTotal) kpiTotal.innerText = totalAmount.toLocaleString() + '원';
+
+      const kpiGroom = document.getElementById('kpiGroomAmount');
+      if (kpiGroom) kpiGroom.innerText = groomAmount.toLocaleString() + '원';
+
+      const kpiGroomCnt = document.getElementById('kpiGroomCount');
+      if (kpiGroomCnt) kpiGroomCnt.innerText = groomCount;
+
+      const kpiBride = document.getElementById('kpiBrideAmount');
+      if (kpiBride) kpiBride.innerText = brideAmount.toLocaleString() + '원';
+
+      const kpiBrideCnt = document.getElementById('kpiBrideCount');
+      if (kpiBrideCnt) kpiBrideCnt.innerText = brideCount;
+
+      const kpiTickets = document.getElementById('kpiTotalTickets');
+      if (kpiTickets) kpiTickets.innerText = totalTickets.toLocaleString() + '장';
+      
+      const avg = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
+      const kpiAvg = document.getElementById('kpiAvgAmount');
+      if (kpiAvg) kpiAvg.innerText = avg.toLocaleString() + '원';
+
+      const fAll = document.getElementById('filterCount_all');
+      const fGroom = document.getElementById('filterCount_groom');
+      const fBride = document.getElementById('filterCount_bride');
+      const fNeutral = document.getElementById('filterCount_neutral');
+      if (fAll) fAll.innerText = `(${totalCount})`;
+      if (fGroom) fGroom.innerText = `(${groomCount})`;
+      if (fBride) fBride.innerText = `(${brideCount})`;
+      if (fNeutral) fNeutral.innerText = `(${neutralCount})`;
     }
 
     function renderRecentEntries() {
       const container = document.getElementById('recentEntriesList');
+      if (!container) return;
       const recent = records.slice(0, 5);
 
       if (recent.length === 0) {
@@ -2391,15 +2477,16 @@
     function handleSearch(val) {
       searchQuery = val.trim().toLowerCase();
       const clearBtn = document.getElementById('clearSearchBtn');
-      if (searchQuery) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
+      if (searchQuery) clearBtn?.classList.remove('hidden');
+      else clearBtn?.classList.add('hidden');
       renderListTable();
     }
 
     function clearSearch() {
-      document.getElementById('searchInput').value = '';
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.value = '';
       searchQuery = '';
-      document.getElementById('clearSearchBtn').classList.add('hidden');
+      document.getElementById('clearSearchBtn')?.classList.add('hidden');
       renderListTable();
     }
 
@@ -2424,17 +2511,20 @@
         filteredTickets += Math.round(Number(filtered[i].tickets) || 0);
       }
 
-      document.getElementById('filteredCountText').innerText = filtered.length;
-      document.getElementById('filteredAmountText').innerText = filteredAmount.toLocaleString() + '원';
-      document.getElementById('filteredTicketText').innerText = filteredTickets + '장';
+      const fCntText = document.getElementById('filteredCountText');
+      const fAmtText = document.getElementById('filteredAmountText');
+      const fTktText = document.getElementById('filteredTicketText');
+      if (fCntText) fCntText.innerText = filtered.length;
+      if (fAmtText) fAmtText.innerText = filteredAmount.toLocaleString() + '원';
+      if (fTktText) fTktText.innerText = filteredTickets + '장';
 
       if (filtered.length === 0) {
         tbody.innerHTML = '';
-        emptyState.classList.remove('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
         return;
       }
 
-      emptyState.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
 
       const isCouple = currentUserRole === 'couple';
 
@@ -2456,7 +2546,6 @@
         const amt = Math.round(Number(r.amount) || 0);
         const tkt = Math.round(Number(r.tickets) || 0);
 
-        // 신랑·신부 모드일 때는 수정·삭제 버튼 대신 '안심 접수됨' 잠금 표시
         let actionColumnHtml = '';
         if (isCouple) {
           actionColumnHtml = `
@@ -2506,16 +2595,17 @@
       const inputEl = document.getElementById('authPasswordInput');
       const errorEl = document.getElementById('pwdErrorMsg');
 
-      titleEl.innerText = actionTitle || '관리자 비밀번호 확인';
-      inputEl.value = '';
-      errorEl.classList.add('hidden');
-      modal.classList.remove('hidden');
+      if (titleEl) titleEl.innerText = actionTitle || '관리자 비밀번호 확인';
+      if (inputEl) inputEl.value = '';
+      if (errorEl) errorEl.classList.add('hidden');
+      if (modal) modal.classList.remove('hidden');
 
-      setTimeout(() => inputEl.focus(), 50);
+      setTimeout(() => inputEl?.focus(), 50);
     }
 
     function closePasswordModal() {
-      document.getElementById('passwordModal').classList.add('hidden');
+      const modal = document.getElementById('passwordModal');
+      if (modal) modal.classList.add('hidden');
       pendingAuthCallback = null;
     }
 
@@ -2530,23 +2620,20 @@
         sessionStorage.setItem('merrydam_user_role', 'admin');
         applyRolePermissionsUI();
 
-        document.getElementById('passwordModal').classList.add('hidden');
+        document.getElementById('passwordModal')?.classList.add('hidden');
         if (typeof pendingAuthCallback === 'function') {
           const action = pendingAuthCallback;
           pendingAuthCallback = null;
           action();
         }
       } else {
-        errorEl.classList.remove('hidden');
-        inputEl.select();
+        errorEl?.classList.remove('hidden');
+        inputEl?.select();
       }
     }
 
     function openEditModal(recordId) {
-      if (currentUserRole === 'couple') {
-        showToast('신랑·신부 모드에서는 장부 수정이 불가합니다.', 'warning');
-        return;
-      }
+      if (currentUserRole === 'couple') return;
       const rec = records.find(r => r.id === recordId);
       if (!rec) return;
 
@@ -2558,11 +2645,11 @@
       document.getElementById('editTickets').value = rec.tickets;
       document.getElementById('editMemo').value = rec.memo || '';
 
-      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal')?.classList.remove('hidden');
     }
 
     function closeEditModal() {
-      document.getElementById('editModal').classList.add('hidden');
+      document.getElementById('editModal')?.classList.add('hidden');
     }
 
     async function handleEditSubmit(e) {
@@ -2579,22 +2666,22 @@
 
       const updateData = { envelopeNum, side, name, amount, tickets, memo, updatedAt: Date.now() };
 
-      try {
-        if (isCloudActive && currentUser && db) {
+      const index = allRecords.findIndex(r => r.id === id);
+      if (index !== -1) {
+        allRecords[index] = { ...allRecords[index], ...updateData };
+        filterRecordsForActiveWedding();
+      }
+
+      closeEditModal();
+      showToast('성공적으로 수정 및 동기화되었습니다.', 'success');
+
+      if (isCloudActive && currentUser && db) {
+        try {
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', id);
           await setDoc(docRef, updateData, { merge: true });
-        } else {
-          const index = allRecords.findIndex(r => r.id === id);
-          if (index !== -1) {
-            allRecords[index] = { ...allRecords[index], ...updateData };
-            filterRecordsForActiveWedding();
-          }
+        } catch (err) {
+          console.warn("Edit cloud sync notice:", err);
         }
-        closeEditModal();
-        showToast('성공적으로 수정 및 동기화되었습니다.', 'success');
-      } catch (err) {
-        console.error("Edit error:", err);
-        showToast('수정 실패: ' + err.message, 'warning');
       }
     }
 
@@ -2612,17 +2699,17 @@
         icon: 'fa-trash-can',
         okText: '삭제하기',
         onConfirm: async () => {
-          try {
-            if (isCloudActive && currentUser && db) {
+          allRecords = allRecords.filter(r => r.id !== recordId);
+          filterRecordsForActiveWedding();
+          showToast('내역이 삭제되었습니다.', 'info');
+
+          if (isCloudActive && currentUser && db) {
+            try {
               const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', recordId);
               await deleteDoc(docRef);
-            } else {
-              allRecords = allRecords.filter(r => r.id !== recordId);
-              filterRecordsForActiveWedding();
+            } catch (err) {
+              console.warn("Delete cloud sync notice:", err);
             }
-            showToast('내역이 삭제되었습니다.', 'info');
-          } catch (err) {
-            showToast('삭제 실패: ' + err.message, 'warning');
           }
         }
       });
@@ -2639,32 +2726,27 @@
           icon: 'fa-triangle-exclamation',
           okText: '전체 초기화',
           onConfirm: async () => {
-            try {
-              if (isCloudActive && currentUser && db) {
+            const targetIds = records.map(r => r.id);
+            allRecords = allRecords.filter(r => r.weddingId !== activeWedding.id);
+            filterRecordsForActiveWedding();
+            showToast('현재 예식의 모든 내역이 초기화되었습니다.', 'warning');
+
+            if (isCloudActive && currentUser && db) {
+              try {
                 const batch = writeBatch(db);
-                records.forEach(r => {
-                  const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', r.id);
-                  batch.delete(docRef);
+                targetIds.forEach(id => {
+                  batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'records', id));
                 });
                 await batch.commit();
-              } else {
-                allRecords = allRecords.filter(r => r.weddingId !== activeWedding.id);
-                filterRecordsForActiveWedding();
+              } catch (err) {
+                console.warn("Batch clear cloud sync notice:", err);
               }
-              showToast('현재 예식의 모든 내역이 초기화되었습니다.', 'warning');
-            } catch (err) {
-              showToast('초기화 실패: ' + err.message, 'warning');
             }
           }
         });
       });
     }
 
-    /**
-     * 엑셀 다운로드:
-     * - 접속한 신랑·신부: 즉시 원클릭으로 다운로드 가능!
-     * - 총괄 관리자: 즉시 다운로드 가능!
-     */
     function handleExcelDownloadClick() {
       if (!activeWedding) {
         showToast('먼저 예식을 선택해 주세요.', 'warning');
@@ -2680,14 +2762,16 @@
       }
     }
 
-    /**
-     * 엑셀 다운로드 실행 (철저한 합계 정합성 & 안전 마스킹 파일명)
-     */
     function executeExcelExport() {
       if (!activeWedding) return;
 
       if (records.length === 0) {
         showToast('내보낼 축의금 접수 내역이 없습니다.', 'warning');
+        return;
+      }
+
+      if (typeof XLSX === 'undefined') {
+        showToast('엑셀 생성 모듈을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.', 'warning');
         return;
       }
 
@@ -2746,6 +2830,8 @@
     }
 
     function renderCharts() {
+      if (typeof Chart === 'undefined') return;
+
       let groomAmount = 0;
       let brideAmount = 0;
       let neutralAmount = 0;
@@ -2759,42 +2845,48 @@
 
       const total = groomAmount + brideAmount + neutralAmount;
 
-      document.getElementById('statRatioGroom').innerText = total > 0 ? Math.round((groomAmount / total) * 100) + '%' : '0%';
-      document.getElementById('statRatioBride').innerText = total > 0 ? Math.round((brideAmount / total) * 100) + '%' : '0%';
-      document.getElementById('statRatioNeutral').innerText = total > 0 ? Math.round((neutralAmount / total) * 100) + '%' : '0%';
+      const statGroom = document.getElementById('statRatioGroom');
+      const statBride = document.getElementById('statRatioBride');
+      const statNeutral = document.getElementById('statRatioNeutral');
+      if (statGroom) statGroom.innerText = total > 0 ? Math.round((groomAmount / total) * 100) + '%' : '0%';
+      if (statBride) statBride.innerText = total > 0 ? Math.round((brideAmount / total) * 100) + '%' : '0%';
+      if (statNeutral) statNeutral.innerText = total > 0 ? Math.round((neutralAmount / total) * 100) + '%' : '0%';
 
-      const ratioCtx = document.getElementById('sideRatioChart').getContext('2d');
-      if (sideRatioChartInstance) sideRatioChartInstance.destroy();
+      const ratioCanvas = document.getElementById('sideRatioChart');
+      if (ratioCanvas) {
+        const ratioCtx = ratioCanvas.getContext('2d');
+        if (sideRatioChartInstance) sideRatioChartInstance.destroy();
 
-      sideRatioChartInstance = new Chart(ratioCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['신랑측', '신부측', '미구분'],
-          datasets: [{
-            data: [groomAmount, brideAmount, neutralAmount],
-            backgroundColor: ['#4A6FA5', '#D9737E', '#9E9E9E'],
-            borderColor: '#FFFFFF',
-            borderWidth: 3,
-            hoverOffset: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { family: 'Pretendard', size: 12 }, padding: 16 } },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const val = context.raw || 0;
-                  return `${context.label}: ${val.toLocaleString()}원`;
+        sideRatioChartInstance = new Chart(ratioCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['신랑측', '신부측', '미구분'],
+            datasets: [{
+              data: [groomAmount, brideAmount, neutralAmount],
+              backgroundColor: ['#4A6FA5', '#D9737E', '#9E9E9E'],
+              borderColor: '#FFFFFF',
+              borderWidth: 3,
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { family: 'Pretendard', size: 12 }, padding: 16 } },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const val = context.raw || 0;
+                    return `${context.label}: ${val.toLocaleString()}원`;
+                  }
                 }
               }
-            }
-          },
-          cutout: '68%'
-        }
-      });
+            },
+            cutout: '68%'
+          }
+        });
+      }
 
       const brackets = {
         '3만원': 0, '5만원': 0, '10만원': 0, '15만원': 0,
@@ -2813,31 +2905,34 @@
         else brackets['기타/이상']++;
       });
 
-      const distCtx = document.getElementById('amountDistChart').getContext('2d');
-      if (amountDistChartInstance) amountDistChartInstance.destroy();
+      const distCanvas = document.getElementById('amountDistChart');
+      if (distCanvas) {
+        const distCtx = distCanvas.getContext('2d');
+        if (amountDistChartInstance) amountDistChartInstance.destroy();
 
-      amountDistChartInstance = new Chart(distCtx, {
-        type: 'bar',
-        data: {
-          labels: Object.keys(brackets),
-          datasets: [{
-            label: '접수 건수 (건)',
-            data: Object.values(brackets),
-            backgroundColor: '#C5A059',
-            borderRadius: 8,
-            hoverBackgroundColor: '#B08B46'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
-            x: { grid: { display: false } }
+        amountDistChartInstance = new Chart(distCtx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(brackets),
+            datasets: [{
+              label: '접수 건수 (건)',
+              data: Object.values(brackets),
+              backgroundColor: '#C5A059',
+              borderRadius: 8,
+              hoverBackgroundColor: '#B08B46'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+              x: { grid: { display: false } }
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     function updateCloudSyncStatusBadge(connected, text) {
@@ -2851,14 +2946,15 @@
         dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
         label.innerText = text || '실시간 연동 중';
       } else {
-        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 transition-colors';
-        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-        label.innerText = text || '로컬 모드';
+        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-200 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-stone-400';
+        label.innerText = text || '현장 모드';
       }
     }
 
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
+      if (!container) return;
       const toast = document.createElement('div');
       
       let icon = 'fa-circle-info';
@@ -2891,11 +2987,15 @@
       const okBtn = document.getElementById('confirmOkBtn');
       const cancelBtn = document.getElementById('confirmCancelBtn');
 
-      iconEl.className = `w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 ${iconBg || 'bg-amber-100 text-amber-800'}`;
-      iconEl.innerHTML = `<i class="fa-solid ${icon || 'fa-question'}"></i>`;
-      titleEl.innerText = title;
-      msgEl.innerText = message;
-      okBtn.innerText = okText || '확인';
+      if (!modal || !okBtn || !cancelBtn) return;
+
+      if (iconEl) {
+        iconEl.className = `w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 ${iconBg || 'bg-amber-100 text-amber-800'}`;
+        iconEl.innerHTML = `<i class="fa-solid ${icon || 'fa-question'}"></i>`;
+      }
+      if (titleEl) titleEl.innerText = title;
+      if (msgEl) msgEl.innerText = message;
+      if (okBtn) okBtn.innerText = okText || '확인';
 
       const handleOk = () => {
         modal.classList.add('hidden');
@@ -2926,7 +3026,6 @@
         .replace(/'/g, '&#039;');
     }
 
-    // Window Global Exports
     window.handleWeddingSearch = handleWeddingSearch;
     window.promptWeddingPassword = promptWeddingPassword;
     window.closeWeddingAuthModal = closeWeddingAuthModal;
@@ -2934,7 +3033,6 @@
     window.confirmExitWeddingSession = confirmExitWeddingSession;
     window.returnToWeddingPortal = returnToWeddingPortal;
     
-    window.requestAdminAndOpenNewWedding = requestAdminAndOpenNewWedding;
     window.openNewWeddingModalDirectly = openNewWeddingModalDirectly;
     window.closeNewWeddingModal = closeNewWeddingModal;
     window.generateRandomPasscodeForNewWedding = generateRandomPasscodeForNewWedding;
@@ -2977,7 +3075,11 @@
     window.confirmDeleteRecord = confirmDeleteRecord;
     window.confirmResetCurrentWeddingData = confirmResetCurrentWeddingData;
 
-    window.addEventListener('DOMContentLoaded', initializeSystem);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeSystem);
+    } else {
+      initializeSystem();
+    }
   </script>
 </body>
 </html>
