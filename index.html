@@ -12,21 +12,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    /* Prevent text selection where unnecessary to reinforce security feel */
-    .user-select-none {
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-  </style>
-  <!-- SheetJS (Excel .xlsx Export) -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <!-- Chart.js for Visual Statistics -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Canvas Confetti for celebratory touch -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
   <script>
     tailwind.config = {
       theme: {
@@ -61,55 +46,17 @@
           }
         }
       }
-    }
+    };
   </script>
-
   <style>
-    body {
-      background-color: #FAF6F0;
-      color: #332C27;
-      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
     .wedding-title {
       font-family: 'Gowun Batang', serif;
     }
-
-    /* Custom smooth scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+    .user-select-none {
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
-    ::-webkit-scrollbar-track {
-      background: #F4ECE1;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #D8C3A5;
-      border-radius: 999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #C5A059;
-    }
-
-    /* Tactile button press effect */
-    .btn-tactile {
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .btn-tactile:active {
-      transform: scale(0.97);
-    }
-
-    /* Subtle pulse animation for envelope counter */
-    @keyframes gentlePulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-    }
-    .pulse-badge {
-      animation: gentlePulse 3s infinite ease-in-out;
-    }
-
-    /* Print styles */
     @media print {
       .no-print {
         display: none !important;
@@ -122,14 +69,264 @@
       }
     }
   </style>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-amber-200 selection:text-amber-900 pb-20 md:pb-12">
+<body class="min-h-screen flex flex-col bg-[#FBF9F5] antialiased selection:bg-amber-200 selection:text-amber-900 pb-16">
 
+  <!-- ============================================================== -->
+  <!-- 0. 메리담 예식 포털 게이트 (예식 리스트 선택 & 개인정보 마스킹)      -->
+  <!-- ============================================================== -->
+  <div id="gateLockScreen" class="fixed inset-0 z-50 bg-[#FAF6F0] flex flex-col items-center justify-start p-4 sm:p-6 overflow-y-auto">
+    <div class="max-w-2xl w-full my-auto py-6 space-y-6">
+      
+      <!-- Brand Header -->
+      <div class="flex flex-col items-center text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-white border border-[#E8DAC7] shadow-sm flex items-center justify-center p-2">
+          <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/FAF6F0/C5A059?text=MD';">
+        </div>
+        <h1 class="wedding-title text-2xl sm:text-3xl font-bold tracking-tight text-[#3A2E25]">메리담</h1>
+        <p class="text-xs sm:text-sm text-stone-600 font-medium">프리미엄 축의대 대행 전문 · 스마트 통합 접수 포털</p>
+      </div>
+
+      <!-- Action & Search Bar for Weddings -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border border-[#EBDCCB] shadow-elevated space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-stone-900 flex items-center space-x-2">
+              <i class="fa-solid fa-calendar-days text-[#C5A059]"></i>
+              <span>예식 일정 선택</span>
+            </h2>
+            <p class="text-xs text-stone-500 mt-0.5">접수할 예식을 선택하고 부여받은 전용 비밀번호를 입력해 주세요.</p>
+          </div>
+          <!-- 새 예식 등록 버튼 (관리자 전용) -->
+          <button type="button" onclick="requestAdminAndOpenNewWedding()"
+            class="btn-tactile self-start sm:self-auto px-4 py-2 rounded-xl bg-[#3A2E25] hover:bg-[#251D17] text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm">
+            <i class="fa-solid fa-plus text-[11px]"></i>
+            <span>새 예식 등록</span>
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative">
+          <input type="text" id="weddingSearchInput" oninput="handleWeddingSearch(this.value)"
+            placeholder="신랑·신부 성함, 웨딩홀 또는 날짜 검색 (예: 전OO, 메OO, 10월 13일)"
+            class="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs sm:text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:bg-white focus:border-[#C5A059] focus:ring-2 focus:ring-amber-100 transition-all">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-stone-400 text-xs"></i>
+        </div>
+
+        <!-- Wedding List Container (최근 예식순 정렬 & 마스킹) -->
+        <div class="space-y-3 pt-1" id="weddingListContainer">
+          <!-- Dynamic Wedding Cards inserted here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="weddingListEmpty" class="hidden py-12 text-center text-stone-400 space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-300 text-xl">
+            <i class="fa-regular fa-calendar-xmark"></i>
+          </div>
+          <p class="text-sm font-bold text-stone-600">등록된 예식이 없습니다.</p>
+          <p class="text-xs text-stone-400">상단의 [새 예식 등록] 버튼을 눌러 첫 예식을 개설해 보세요.</p>
+        </div>
+      </div>
+
+      <!-- Portal Footer Notice -->
+      <div class="flex items-center justify-between text-xs text-stone-400 px-2">
+        <span class="flex items-center space-x-1">
+          <i class="fa-solid fa-shield-halved text-stone-400"></i>
+          <span>메리담 개인정보 안심 마스킹 적용 중</span>
+        </span>
+        <button onclick="requestAdminAccess()" class="hover:text-stone-700 hover:underline">
+          총괄 관리자 센터
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 0-1. 예식 입장 비밀번호 입력 모달                                -->
+  <!-- ============================================================== -->
+  <div id="weddingAuthModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated text-center space-y-5">
+      <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl bg-amber-50 text-amber-800 border border-amber-200">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h3 id="authModalWeddingTitle" class="text-base sm:text-lg font-bold text-stone-900 leading-snug">
+          26년 10월 13일 전OO 신랑 김OO 신부 3시 예식
+        </h3>
+        <p class="text-xs text-stone-500 mt-1">부여받으신 본 예식 전용 접속 비밀번호를 입력해 주세요.</p>
+      </div>
+
+      <form onsubmit="handleWeddingPasscodeSubmit(event)" class="space-y-4">
+        <div class="relative">
+          <input type="password" id="weddingAuthPassInput" maxlength="20" required autocomplete="off"
+            placeholder="비밀번호 입력"
+            class="w-full text-center text-xl font-bold tracking-widest py-3 px-4 bg-stone-50 border-2 border-stone-200 rounded-2xl focus:outline-none focus:border-[#C5A059] focus:bg-white focus:ring-4 focus:ring-amber-100 transition-all text-stone-900 placeholder:text-stone-400 placeholder:tracking-normal placeholder:text-sm font-mono">
+        </div>
+
+        <p id="weddingAuthErrorMsg" class="hidden text-xs text-rose-600 font-semibold flex items-center justify-center space-x-1">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>비밀번호가 일치하지 않습니다.</span>
+        </p>
+
+        <div class="flex space-x-2 pt-1">
+          <button type="button" onclick="closeWeddingAuthModal()" class="flex-1 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm">
+            취소
+          </button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white font-bold text-sm shadow-md">
+            입장하기
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 0-2. 새 예식 등록 모달 (원클릭 시간 칩 & 성함 자동 마스킹 프리뷰)    -->
+  <!-- ============================================================== -->
+  <div id="newWeddingModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6">
+      <div class="flex items-center justify-between pb-4 border-b border-stone-200">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 text-sm">
+            <i class="fa-solid fa-calendar-plus"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-stone-900">새 예식 등록</h3>
+            <p class="text-xs text-stone-500">예식 일시, 신랑·신부 성함 및 전용 접속 비밀번호 설정</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeNewWeddingModal()" class="text-stone-400 hover:text-stone-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="newWeddingForm" onsubmit="handleNewWeddingSubmit(event)" class="mt-4 space-y-4">
+        <!-- 예식 일자 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            예식 날짜 <span class="text-rose-500">*</span>
+          </label>
+          <input type="date" id="newWeddingDate" required
+            class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+        </div>
+
+        <!-- 예식 시간 (원클릭 선택 버튼 그리드 & 직접 입력) -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-stone-700">
+              예식 시간 <span class="text-rose-500">*</span>
+            </label>
+            <span class="text-[11px] text-amber-800 font-semibold" id="newWeddingTimePreview">선택된 시간: 15:00 (3시)</span>
+          </div>
+
+          <!-- 원클릭 시간 선택 칩 -->
+          <div class="grid grid-cols-4 sm:grid-cols-5 gap-1.5 mb-2" id="timeChipsContainer">
+            <button type="button" onclick="selectQuickWeddingTime('11:00')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">11:00</button>
+            <button type="button" onclick="selectQuickWeddingTime('11:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">11:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('12:00')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">12:00</button>
+            <button type="button" onclick="selectQuickWeddingTime('12:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">12:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('13:00')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">13:00 (1시)</button>
+            <button type="button" onclick="selectQuickWeddingTime('13:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">13:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('14:00')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">14:00 (2시)</button>
+            <button type="button" onclick="selectQuickWeddingTime('14:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">14:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('15:00 (3시)')" class="time-chip py-1.5 text-xs font-bold rounded-lg border border-amber-600 bg-amber-500 text-white">15:00 (3시)</button>
+            <button type="button" onclick="selectQuickWeddingTime('15:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">15:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('16:00 (4시)')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">16:00 (4시)</button>
+            <button type="button" onclick="selectQuickWeddingTime('16:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">16:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('17:00 (5시)')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">17:00 (5시)</button>
+            <button type="button" onclick="selectQuickWeddingTime('17:30')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">17:30</button>
+            <button type="button" onclick="selectQuickWeddingTime('18:00 (6시)')" class="time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">18:00 (6시)</button>
+          </div>
+
+          <input type="text" id="newWeddingTime" required value="15:00 (3시)" placeholder="시간 직접 입력 (예: 15:00)"
+            class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+        </div>
+
+        <!-- 신랑 & 신부 성함 (전형민 입력 시 자동으로 전OO 마스킹 표기) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-stone-700">
+                신랑 성함 <span class="text-rose-500">*</span>
+              </label>
+              <span id="groomMaskPreview" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">전OO</span>
+            </div>
+            <input type="text" id="newWeddingGroom" required placeholder="예: 전형민" oninput="updateGroomMaskPreview(this.value)"
+              class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-stone-700">
+                신부 성함 <span class="text-rose-500">*</span>
+              </label>
+              <span id="brideMaskPreview" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">김OO</span>
+            </div>
+            <input type="text" id="newWeddingBride" required placeholder="예: 김민지" oninput="updateBrideMaskPreview(this.value)"
+              class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+          </div>
+        </div>
+        <p class="text-[11px] text-stone-500 -mt-2">
+          <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>성함을 정자로 입력하면 포털 리스트 및 장부 표기 시 자동으로 <strong>첫 글자 외 'OO' 마스킹</strong>되어 개인정보가 철저히 보호됩니다.
+        </p>
+
+        <!-- 웨딩홀 및 장소 (사생활 보호 자동 마스킹 지원) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-bold text-stone-700">
+              예식장 / 웨딩홀 (선택)
+            </label>
+            <span id="venueMaskPreview" class="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">메OO 웨딩홀 1층 그랜드볼룸</span>
+          </div>
+          <input type="text" id="newWeddingVenue" placeholder="예: 메리담 웨딩홀 1층 그랜드볼룸" oninput="updateVenueMaskPreview(this.value)"
+            class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+          <p class="text-[11px] text-stone-500 mt-1">
+            <i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i>웨딩홀 명칭도 사생활 보호를 위해 첫 어절이 <strong>'메OO 웨딩홀...'</strong> 형태로 자동 안심 마스킹됩니다.
+          </p>
+        </div>
+
+        <!-- 접속 비밀번호 설정 -->
+        <div class="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-amber-900 flex items-center space-x-1.5">
+              <i class="fa-solid fa-key text-amber-700"></i>
+              <span>예식 접속 비밀번호 <span class="text-rose-500">*</span></span>
+            </label>
+            <button type="button" onclick="generateRandomPasscodeForNewWedding()"
+              class="btn-tactile text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-900">
+              랜덤 6자리 생성
+            </button>
+          </div>
+          <input type="text" id="newWeddingPassword" required maxlength="20" placeholder="비밀번호 지정 (예: 1234)"
+            class="w-full px-3 py-2 bg-white border-2 border-amber-300 rounded-xl text-sm font-extrabold text-stone-900 text-center tracking-widest outline-none font-mono">
+          <p class="text-[11px] text-amber-800/80">※ 해당 예식의 신랑·신부 및 축의대 인원에게 공유될 전용 비밀번호입니다.</p>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeNewWeddingModal()"
+            class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold">
+            취소
+          </button>
+          <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white text-xs font-bold shadow-md">
+            예식 등록 및 저장
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 1. 활성 예식 상단 헤더 (브랜드, 현재 예식 표시, 보안 엑셀 다운로드) -->
+  <!-- ============================================================== -->
   <header class="bg-white/95 backdrop-blur-md border-b border-[#EBDCCB] sticky top-0 z-40 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16 sm:h-20">
         
-        <!-- Brand Identity -->
+        <!-- Brand Identity & Active Wedding Title -->
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white border border-[#EBDCCB] shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
             <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/48x48/FAF6F0/C5A059?text=MD';">
@@ -137,44 +334,54 @@
           <div>
             <div class="flex items-center space-x-2">
               <span class="wedding-title text-xl sm:text-2xl font-bold tracking-tight text-[#3A2E25]">메리담</span>
-              <span class="px-2 py-0.5 text-[11px] font-semibold bg-amber-100 text-amber-900 rounded-full border border-amber-200">축의대 대행 전문</span>
+              <span class="px-2 py-0.5 text-[11px] font-semibold bg-amber-100 text-amber-900 rounded-full border border-amber-200">축의대 대행</span>
+              <!-- Role Badge -->
+              <span id="headerRoleBadge" class="px-2 py-0.5 text-[11px] font-extrabold rounded-full bg-stone-800 text-white shadow-xs">
+                권한 확인 중
+              </span>
             </div>
-            <p class="text-xs text-stone-500 font-medium hidden sm:block">소중한 하객의 마음을 한 분 한 분 정성스럽고 투명하게 기록합니다</p>
+            <!-- Current Selected Wedding Label (Masked for privacy) -->
+            <div class="flex items-center space-x-1.5 mt-0.5">
+              <span id="headerWeddingBadge" class="text-xs font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 max-w-[220px] sm:max-w-md truncate">
+                선택된 예식 로딩 중...
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- Header Quick Live Badge & Actions -->
-        <div class="flex items-center space-x-2 sm:space-x-4">
-          <div class="hidden md:flex items-center px-3 py-1.5 bg-[#F9F5EE] border border-[#E8DAC7] rounded-xl text-xs space-x-4">
-            <div>
-              <span class="text-stone-400">총 축의금</span>
-              <span id="quickTotalAmount" class="font-bold text-stone-800 ml-1">0원</span>
-            </div>
-            <div class="w-px h-3 bg-stone-300"></div>
-            <div>
-              <span class="text-stone-400">식권 배부</span>
-              <span id="quickTotalTickets" class="font-bold text-amber-800 ml-1">0장</span>
-            </div>
-          </div>
+        <!-- Header Actions: Change Wedding, Cloud Status, Quick Excel -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          
+          <!-- 예식 변경 (보안 퇴장: 타 예식 열람 차단 가드) -->
+          <button type="button" onclick="confirmExitWeddingSession()"
+            class="btn-tactile inline-flex items-center space-x-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all" title="안전하게 나가기">
+            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">예식 나가기</span>
+            <span class="sm:hidden">나가기</span>
+          </button>
 
           <!-- Cloud Real-time Sync Status Badge -->
           <div id="cloudStatusBadge" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors">
             <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="cloudStatusText" class="hidden sm:inline">실시간 연동 연결 중</span>
-            <span class="sm:hidden">실시간</span>
+            <span id="cloudStatusText" class="hidden md:inline">실시간 연동 중</span>
+            <span class="md:hidden">실시간</span>
           </div>
 
-          <!-- Quick Excel Button in Header -->
-          <button onclick="exportToExcel()" class="btn-tactile inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#2E7D32] hover:bg-[#256629] text-white shadow-sm shadow-green-900/15 transition-all">
+          <!-- Quick Excel Button in Header (신랑·신부는 즉시 다운로드 허용, 비인증자는 관리자 확인) -->
+          <button id="headerExcelDownloadBtn" onclick="handleExcelDownloadClick()" class="btn-tactile inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#2E7D32] hover:bg-[#256629] text-white shadow-sm shadow-green-900/15 transition-all" title="엑셀 접수대장 다운로드">
             <i class="fa-solid fa-file-excel text-sm"></i>
             <span class="hidden sm:inline">엑셀 다운로드</span>
             <span class="sm:hidden">엑셀</span>
+            <i id="headerExcelLockIcon" class="fa-solid fa-circle-check text-[10px] text-green-200 ml-0.5"></i>
           </button>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- ============================================================== -->
+  <!-- 2. 네비게이션 탭 (접수하기 / 접수 내역 / 실시간 통계)                -->
+  <!-- ============================================================== -->
   <nav class="bg-[#F6EFE5] border-b border-[#E5D7C4] sticky top-16 sm:top-20 z-30 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex space-x-2 sm:space-x-6 py-2 overflow-x-auto no-scrollbar" role="tablist">
@@ -202,16 +409,42 @@
     </div>
   </nav>
 
+  <!-- ============================================================== -->
+  <!-- 3. MAIN CONTENT AREAS                                          -->
+  <!-- ============================================================== -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 flex-grow w-full">
 
-    <!-- ============================================================== -->
-    <!-- TAB 1: 축의 접수 (홈)                                           -->
-    <!-- ============================================================== -->
+    <!-- TAB 1: 축의 접수 (홈) -->
     <section id="sectionHome" class="space-y-6">
+      
+      <!-- 신랑·신부 전용 열람 모드 안내 배너 (신랑·신부 접속 시 표시, 작성 폼 잠금) -->
+      <div id="coupleViewOnlyBanner" class="hidden bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 p-5 rounded-3xl border-2 border-amber-300/80 shadow-card">
+        <div class="flex items-start space-x-3.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-lg shadow-sm">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <div class="flex-1 space-y-1">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm sm:text-base font-extrabold text-stone-900 flex items-center space-x-1.5">
+                <span>신랑·신부님 전용 실시간 열람 &amp; 엑셀 다운로드 모드</span>
+                <span class="px-2 py-0.5 text-[11px] font-bold bg-amber-200/80 text-amber-900 rounded-md">조회 전용</span>
+              </h3>
+              <button type="button" onclick="handleExcelDownloadClick()" class="btn-tactile px-3.5 py-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#256629] text-white text-xs font-bold shadow-xs flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>실시간 엑셀 다운로드</span>
+              </button>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+              본 화면은 <strong>신랑·신부님 전용 실시간 모니터링 화면</strong>입니다. 현장 축의금 수납 및 봉투 번호 발급은 <strong>메리담 전문 축의대 요원이 현장에서 안전하게 실시간 입력</strong>하고 있습니다. 장부의 오기입 방지를 위해 신랑·신부 모드에서는 입력/수정이 제한되며, 상단 <strong>[접수 내역]</strong>, <strong>[실시간 통계]</strong> 및 <strong>[엑셀 다운로드]</strong> 기능을 자유롭게 이용하실 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- Left: Input Form Card (8 Columns) -->
-        <div class="lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card">
+        <div id="receptionFormCard" class="lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card transition-all">
           
           <!-- Top Row: Envelope Number & Quick Info -->
           <div class="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[#F2E7D9]">
@@ -219,20 +452,20 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-stone-400">발급 봉투 번호</span>
               <div class="flex items-center space-x-1.5">
                 <span id="currentSideLabel" class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-50 text-wedding-groom border border-blue-200">신랑측</span>
-                <span id="currentEnvelopeNum" class="pulse-badge px-3.5 py-1 text-base font-extrabold bg-[#FAF3E7] text-[#916E34] border border-[#E9D5B7] rounded-full font-mono">
+                <span id="currentEnvelopeNum" class="px-3.5 py-1 text-base font-extrabold bg-[#FAF3E7] text-[#916E34] border border-[#E9D5B7] rounded-full font-mono">
                   #001
                 </span>
               </div>
             </div>
             <div class="text-xs text-stone-500 flex items-center space-x-2">
               <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span class="font-medium text-emerald-700">실시간 접수 모드 활성</span>
+              <span class="font-medium text-emerald-700">현장 실시간 접수 모드 활성</span>
             </div>
           </div>
 
           <form id="cashGiftForm" onsubmit="handleFormSubmit(event)" class="mt-6 space-y-6">
             
-            <!-- 1. 구분 선택 (신랑측, 신부측, 미구분) - Clean & Elegant Design Without Emojis -->
+            <!-- 1. 구분 선택 (신랑측, 신부측, 미구분) -->
             <div>
               <label class="block text-sm font-bold text-stone-800 mb-2">
                 <span class="text-amber-600 font-extrabold mr-1">1.</span> 구분을 선택해 주세요
@@ -322,35 +555,19 @@
                 </span>
               </div>
 
-              <!-- 금액 선택 버튼 그리드 (4x2 on desktop, 4x2 on mobile) -->
+              <!-- 금액 선택 버튼 그리드 (3만 ~ 100만) -->
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
-                <button type="button" onclick="setQuickAmount(30000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="30000">
-                  3만원
-                </button>
-                <button type="button" onclick="setQuickAmount(50000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="50000">
-                  5만원
-                </button>
-                <button type="button" onclick="setQuickAmount(100000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="100000">
-                  10만원
-                </button>
-                <button type="button" onclick="setQuickAmount(150000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="150000">
-                  15만원
-                </button>
-                <button type="button" onclick="setQuickAmount(200000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="200000">
-                  20만원
-                </button>
-                <button type="button" onclick="setQuickAmount(300000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="300000">
-                  30만원
-                </button>
-                <button type="button" onclick="setQuickAmount(500000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="500000">
-                  50만원
-                </button>
-                <button type="button" onclick="setQuickAmount(1000000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="1000000">
-                  100만원
-                </button>
+                <button type="button" onclick="setQuickAmount(30000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="30000">3만원</button>
+                <button type="button" onclick="setQuickAmount(50000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="50000">5만원</button>
+                <button type="button" onclick="setQuickAmount(100000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="100000">10만원</button>
+                <button type="button" onclick="setQuickAmount(150000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="150000">15만원</button>
+                <button type="button" onclick="setQuickAmount(200000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="200000">20만원</button>
+                <button type="button" onclick="setQuickAmount(300000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="300000">30만원</button>
+                <button type="button" onclick="setQuickAmount(500000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="500000">50만원</button>
+                <button type="button" onclick="setQuickAmount(1000000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="1000000">100만원</button>
               </div>
 
-              <!-- 직접 입력 토글 및 입력 영역 -->
+              <!-- 직접 입력 토글 및 단축 버튼 -->
               <div class="mt-3">
                 <div class="flex items-center space-x-2">
                   <button type="button" id="customAmountToggleBtn" onclick="toggleCustomAmount()" 
@@ -366,7 +583,6 @@
                   </div>
                 </div>
 
-                <!-- Custom Amount Input Field (Expandable) -->
                 <div id="customAmountContainer" class="hidden mt-2.5">
                   <div class="relative">
                     <input type="text" id="customAmountInput" inputmode="numeric" placeholder="금액 직접 입력 (숫자만)"
@@ -375,12 +591,11 @@
                     <span class="absolute inset-y-0 right-0 pr-4 flex items-center font-bold text-stone-500">원</span>
                   </div>
                 </div>
-
                 <input type="hidden" id="finalAmount" value="100000">
               </div>
             </div>
 
-            <!-- 4. 식권 수량 설정 (- 버튼, + 버튼, 기본값 1장) -->
+            <!-- 4. 식권 수량 설정 -->
             <div class="pt-2">
               <label class="block text-sm font-bold text-stone-800 mb-2">
                 <span class="text-amber-600 font-extrabold mr-1">4.</span> 식권 수량 설정
@@ -398,15 +613,12 @@
                   </div>
                 </div>
 
-                <!-- Stepper Buttons -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
-                  <!-- - 버튼 -->
                   <button type="button" onclick="adjustTickets(-1)" 
                     class="btn-tactile w-11 h-11 rounded-xl bg-white border-2 border-stone-300 hover:border-stone-400 flex items-center justify-center text-stone-700 text-lg font-bold shadow-xs active:bg-stone-100">
                     <i class="fa-solid fa-minus"></i>
                   </button>
 
-                  <!-- Current Ticket Count -->
                   <div class="w-16 sm:w-20 text-center">
                     <input type="number" id="ticketCountInput" min="0" max="99" value="1" 
                       onchange="validateTicketInput(this)"
@@ -414,13 +626,11 @@
                     <span class="text-[11px] font-semibold text-stone-400 block -mt-1">장</span>
                   </div>
 
-                  <!-- + 버튼 -->
                   <button type="button" onclick="adjustTickets(1)" 
                     class="btn-tactile w-11 h-11 rounded-xl bg-white border-2 border-stone-300 hover:border-stone-400 flex items-center justify-center text-stone-700 text-lg font-bold shadow-xs active:bg-stone-100">
                     <i class="fa-solid fa-plus"></i>
                   </button>
                   
-                  <!-- Quick 0 장 (미지급) 버튼 -->
                   <button type="button" onclick="setTickets(0)" class="btn-tactile text-xs font-semibold px-2.5 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-700">
                     미지급 (0장)
                   </button>
@@ -448,11 +658,10 @@
         <!-- Right: Real-time Live Feed & Summary (4 Columns) -->
         <div class="lg:col-span-4 space-y-5">
           
-          <!-- Today Desk Summary Card -->
           <div class="bg-gradient-to-br from-[#FAF5EE] to-[#F1E5D5] p-5 rounded-3xl border border-[#E8D9C5] shadow-card">
             <h3 class="wedding-title font-bold text-lg text-stone-800 flex items-center space-x-2 mb-3">
               <i class="fa-solid fa-chart-simple text-amber-700"></i>
-              <span>실시간 축의대 현황</span>
+              <span>현재 예식 축의 현황</span>
             </h3>
 
             <div class="grid grid-cols-2 gap-3 mb-3">
@@ -504,7 +713,6 @@
             </div>
 
             <div id="recentEntriesList" class="space-y-2.5">
-              <!-- Dynamically populated or empty state -->
               <div class="text-center py-8 text-stone-400 text-xs">
                 <i class="fa-regular fa-folder-open text-2xl mb-1 text-stone-300 block"></i>
                 아직 접수된 축의 내역이 없습니다.
@@ -512,12 +720,11 @@
             </div>
           </div>
 
-          <!-- Agency Trust Badge -->
           <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-amber-900/80 text-xs flex items-center space-x-3">
             <i class="fa-solid fa-shield-halved text-xl text-amber-700 flex-shrink-0"></i>
             <div>
-              <p class="font-bold">메리담(MerryDam) 안전 기록 보장</p>
-              <p class="text-[11px] text-amber-800/80">접수된 모든 데이터는 실시간 자동 동기화되며, 언제든지 엑셀 파일로 백업할 수 있습니다.</p>
+              <p class="font-bold">메리담(MerryDam) 예식 안심 동기화</p>
+              <p class="text-[11px] text-amber-800/80">현재 예식의 데이터만 분리 저장되며, 엑셀 다운로드는 총괄 관리자 승인 시에만 안전하게 제공됩니다.</p>
             </div>
           </div>
 
@@ -525,34 +732,29 @@
       </div>
     </section>
 
-
     <!-- ============================================================== -->
-    <!-- TAB 2: 접수 내역 (관리 및 조회)                                  -->
+    <!-- TAB 2: 접수 내역 (조회, 수정, 필터링)                             -->
     <!-- ============================================================== -->
     <section id="sectionList" class="hidden space-y-5">
       
-      <!-- List Control Bar: Filters & Search & Export -->
       <div class="bg-white p-4 sm:p-5 rounded-3xl border border-[#EFE2D2] shadow-card space-y-4">
-        
         <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           
-          <!-- Category Tabs: 전체 / 신랑측 / 신부측 / 미구분 -->
           <div class="flex items-center space-x-1.5 p-1 bg-stone-100 rounded-2xl overflow-x-auto no-scrollbar">
             <button onclick="setListFilter('all')" id="filterBtn_all" class="filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-stone-900 shadow-xs transition-all">
               전체 <span id="filterCount_all" class="text-xs font-normal text-stone-500">(0)</span>
             </button>
             <button onclick="setListFilter('groom')" id="filterBtn_groom" class="filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-900 transition-all">
-              🤵 신랑측 <span id="filterCount_groom" class="text-xs font-normal text-stone-400">(0)</span>
+              신랑측 <span id="filterCount_groom" class="text-xs font-normal text-stone-400">(0)</span>
             </button>
             <button onclick="setListFilter('bride')" id="filterBtn_bride" class="filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-900 transition-all">
-              👰 신부측 <span id="filterCount_bride" class="text-xs font-normal text-stone-400">(0)</span>
+              신부측 <span id="filterCount_bride" class="text-xs font-normal text-stone-400">(0)</span>
             </button>
             <button onclick="setListFilter('neutral')" id="filterBtn_neutral" class="filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-900 transition-all">
-              🕊️ 미구분 <span id="filterCount_neutral" class="text-xs font-normal text-stone-400">(0)</span>
+              미구분 <span id="filterCount_neutral" class="text-xs font-normal text-stone-400">(0)</span>
             </button>
           </div>
 
-          <!-- Search Input & Tools -->
           <div class="flex items-center space-x-2">
             <div class="relative flex-grow sm:w-64">
               <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="이름 또는 메모 검색..."
@@ -563,19 +765,17 @@
               </button>
             </div>
 
-            <!-- Print Button -->
             <button onclick="window.print()" class="btn-tactile p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600 text-xs font-semibold" title="프린트 출력">
               <i class="fa-solid fa-print"></i>
             </button>
 
-            <!-- Load Sample Data & Reset Data Buttons -->
-            <button onclick="confirmResetAllData()" class="btn-tactile p-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold" title="전체 데이터 초기화">
+            <!-- 현재 예식 내역 초기화 (관리자 전용) -->
+            <button id="resetWeddingDataBtn" onclick="confirmResetCurrentWeddingData()" class="btn-tactile p-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold" title="현재 예식 내역 초기화 (관리자 전용)">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </div>
 
-        <!-- Current Filtered Total Summary Bar -->
         <div class="flex flex-wrap items-center justify-between text-xs sm:text-sm bg-[#FAF6EE] px-4 py-2.5 rounded-xl border border-[#EADBCA] text-stone-700">
           <div>
             현재 조회: <strong id="filteredCountText" class="text-stone-900">0</strong>건
@@ -590,17 +790,15 @@
             </div>
           </div>
         </div>
-
       </div>
 
+      <!-- Table View -->
       <div class="bg-white rounded-3xl border border-[#EFE2D2] shadow-card overflow-hidden">
-        
-        <!-- Responsive Table for PC & Tablet -->
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-stone-50/80 border-b border-stone-200/80 text-[11px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider">
-                <th class="py-3.5 px-4 sm:px-6 w-16 text-center">번호</th>
+                <th class="py-3.5 px-4 sm:px-6 w-20 text-center">번호</th>
                 <th class="py-3.5 px-4 w-28 text-center">구분</th>
                 <th class="py-3.5 px-4 sm:px-6">축의자 성함</th>
                 <th class="py-3.5 px-4 sm:px-6 text-right">축의 금액</th>
@@ -611,12 +809,10 @@
               </tr>
             </thead>
             <tbody id="recordsTableBody" class="divide-y divide-stone-100 text-sm">
-              <!-- Dynamically rendered rows -->
             </tbody>
           </table>
         </div>
 
-        <!-- Empty State in Table -->
         <div id="tableEmptyState" class="hidden py-16 text-center text-stone-400">
           <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-stone-100 flex items-center justify-center text-stone-300 text-2xl">
             <i class="fa-regular fa-clipboard"></i>
@@ -624,21 +820,16 @@
           <p class="font-bold text-stone-600 text-base">조회된 내역이 없습니다</p>
           <p class="text-xs text-stone-400 mt-1">새로운 축의금을 접수하거나 검색 조건을 변경해 보세요.</p>
         </div>
-
       </div>
 
     </section>
-
 
     <!-- ============================================================== -->
     <!-- TAB 3: 실시간 통계 (대시보드)                                   -->
     <!-- ============================================================== -->
     <section id="sectionStats" class="hidden space-y-6">
-      
-      <!-- Key Metric KPI Cards (4 Cards) -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <!-- Total Amount -->
         <div class="bg-white p-4 sm:p-5 rounded-3xl border border-[#EFE2D2] shadow-card">
           <div class="flex items-center justify-between text-stone-400 mb-2">
             <span class="text-xs font-semibold">총 접수 금액</span>
@@ -647,10 +838,9 @@
             </div>
           </div>
           <div id="kpiTotalAmount" class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">0원</div>
-          <div class="mt-1 text-[11px] text-stone-400">현재까지 접수된 총 축의금</div>
+          <div class="mt-1 text-[11px] text-stone-400">현재 예식 총 축의금</div>
         </div>
 
-        <!-- Groom Side -->
         <div class="bg-white p-4 sm:p-5 rounded-3xl border border-[#EFE2D2] shadow-card">
           <div class="flex items-center justify-between text-stone-400 mb-2">
             <span class="text-xs font-semibold text-wedding-groom">신랑측 축의금</span>
@@ -662,7 +852,6 @@
           <div class="mt-1 text-[11px] text-stone-400"><span id="kpiGroomCount">0</span>명 접수 완료</div>
         </div>
 
-        <!-- Bride Side -->
         <div class="bg-white p-4 sm:p-5 rounded-3xl border border-[#EFE2D2] shadow-card">
           <div class="flex items-center justify-between text-stone-400 mb-2">
             <span class="text-xs font-semibold text-wedding-bride">신부측 축의금</span>
@@ -674,7 +863,6 @@
           <div class="mt-1 text-[11px] text-stone-400"><span id="kpiBrideCount">0</span>명 접수 완료</div>
         </div>
 
-        <!-- Total Tickets & Average -->
         <div class="bg-white p-4 sm:p-5 rounded-3xl border border-[#EFE2D2] shadow-card">
           <div class="flex items-center justify-between text-stone-400 mb-2">
             <span class="text-xs font-semibold">총 배부 식권</span>
@@ -688,10 +876,9 @@
 
       </div>
 
-      <!-- Charts Section: Side Ratio & Amount Distribution -->
+      <!-- Charts: Doughnut & Distribution Bar -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Side Ratio Doughnut Chart -->
         <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-[#EFE2D2] shadow-card flex flex-col">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-base text-stone-800">신랑측 vs 신부측 비율</h3>
@@ -716,7 +903,6 @@
           </div>
         </div>
 
-        <!-- Amount Bracket Bar Chart -->
         <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-[#EFE2D2] shadow-card flex flex-col">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-base text-stone-800">금액대별 축의 분포 (건수)</h3>
@@ -732,6 +918,92 @@
     </section>
 
   </main>
+
+  <!-- ============================================================== -->
+  <!-- FOOTER & ADMIN ACCESS                                          -->
+  <!-- ============================================================== -->
+  <footer class="mt-auto py-5 border-t border-[#EBDCCB]/60 text-center text-xs text-stone-400 no-print">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="wedding-title font-bold text-stone-600">메리담</span>
+        <span>|</span>
+        <span id="footerWeddingLabel">프리미엄 축의대 대행 전문 시스템</span>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <button onclick="requestAdminAccess()" class="btn-tactile text-[11px] text-stone-400 hover:text-stone-700 hover:underline flex items-center space-x-1.5 px-2 py-1 rounded-lg">
+          <i class="fa-solid fa-gear text-[10px]"></i>
+          <span>총괄 관리자 센터</span>
+        </button>
+        <span class="text-stone-300">|</span>
+        <button onclick="confirmExitWeddingSession()" class="btn-tactile text-[11px] text-stone-400 hover:text-stone-700 flex items-center space-x-1 px-2 py-1 rounded-lg">
+          <i class="fa-solid fa-door-open text-[10px]"></i>
+          <span>예식 나가기</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================== -->
+  <!-- ADMIN MASTER CENTER MODAL (77985590)                           -->
+  <!-- ============================================================== -->
+  <div id="adminCenterModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6">
+      <div class="flex items-center justify-between pb-4 border-b border-stone-200">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 text-sm">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-stone-900">메리담 총괄 관리자 센터</h3>
+            <p class="text-xs text-stone-500">전체 예식 관리, 새 예식 개설 및 비밀번호 재설정</p>
+          </div>
+        </div>
+        <button onclick="closeAdminCenterModal()" class="text-stone-400 hover:text-stone-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="mt-5 space-y-5">
+        
+        <!-- Action Row -->
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-stone-800">등록된 전체 예식 목록</span>
+          <button type="button" onclick="openNewWeddingModalDirectly()"
+            class="btn-tactile px-3 py-1.5 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white text-xs font-bold flex items-center space-x-1 shadow-xs">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+            <span>새 예식 추가</span>
+          </button>
+        </div>
+
+        <!-- Weddings list in admin modal -->
+        <div id="adminWeddingList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <!-- Dynamic admin wedding items -->
+        </div>
+
+        <!-- Current Wedding Share Link Box (if one is active) -->
+        <div id="adminShareBox" class="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+          <label class="block text-xs font-bold text-amber-900">선택된 예식 신랑·신부 공유 문구</label>
+          <div class="flex items-center space-x-2">
+            <textarea id="adminSharePreview" readonly rows="3"
+              class="flex-1 p-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-600 font-sans resize-none outline-none"></textarea>
+            <button type="button" onclick="copyShareTextToClipboard()"
+              class="btn-tactile px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs whitespace-nowrap h-full">
+              <i class="fa-regular fa-copy block text-sm mb-1"></i>
+              <span>복사</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-stone-100 flex justify-end">
+        <button type="button" onclick="closeAdminCenterModal()" class="px-5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Edit Record Modal -->
   <div id="editModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -749,7 +1021,6 @@
       <form id="editForm" onsubmit="handleEditSubmit(event)" class="mt-4 space-y-4">
         <input type="hidden" id="editRecordId">
 
-        <!-- 봉투 번호 및 구분 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-stone-600 mb-1">봉투 번호</label>
@@ -765,13 +1036,11 @@
           </div>
         </div>
 
-        <!-- 성함 -->
         <div>
           <label class="block text-xs font-semibold text-stone-600 mb-1">축의자 성함</label>
           <input type="text" id="editGuestName" required class="w-full px-3 py-2 bg-stone-50 border rounded-xl font-bold text-base">
         </div>
 
-        <!-- 금액 & 식권 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-stone-600 mb-1">축의 금액 (원)</label>
@@ -783,7 +1052,6 @@
           </div>
         </div>
 
-        <!-- 메모 -->
         <div>
           <label class="block text-xs font-semibold text-stone-600 mb-1">메모 / 관계</label>
           <input type="text" id="editMemo" class="w-full px-3 py-2 bg-stone-50 border rounded-xl text-sm">
@@ -801,14 +1069,14 @@
     </div>
   </div>
 
-  <!-- Security Password Modal (Required: 77985590) -->
+  <!-- Security Password Modal (Master: 77985590) -->
   <div id="passwordModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-[#EADBCA] shadow-elevated text-center">
       <div class="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 bg-amber-100 text-amber-800">
         <i class="fa-solid fa-lock"></i>
       </div>
       <h4 id="pwdModalTitle" class="text-lg font-bold text-stone-900 mb-1">관리자 비밀번호 확인</h4>
-      <p id="pwdModalDesc" class="text-xs text-stone-500 mb-4">내역 수정 및 삭제는 관리자 승인이 필요합니다.</p>
+      <p id="pwdModalDesc" class="text-xs text-stone-500 mb-4">보안 작업을 위해 총괄 관리자 인증이 필요합니다.</p>
       
       <div class="mb-4">
         <input type="password" id="authPasswordInput" maxlength="16" placeholder="비밀번호 입력"
@@ -830,7 +1098,7 @@
     </div>
   </div>
 
-  <!-- Custom Confirmation Dialog Modal (Replaces browser confirm) -->
+  <!-- Confirmation Dialog Modal -->
   <div id="confirmModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-stone-200 shadow-elevated text-center">
       <div id="confirmModalIcon" class="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 bg-amber-100 text-amber-800">
@@ -853,7 +1121,16 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT CORE LOGIC WITH ENHANCED SECURITY & AUTOMATIC MASKING -->
+  <!-- ============================================================== -->
   <script type="module">
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason && (event.reason.code === 'analytics/config-fetch-failed' || String(event.reason?.message || event.reason).includes('analytics'))) {
+        event.preventDefault();
+      }
+    });
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { 
       getAuth, 
@@ -871,36 +1148,98 @@
       writeBatch 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'merrydam-wedding-desk';
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'merrydam';
     const ADMIN_PASSWORD = "77985590";
     let pendingAuthCallback = null;
+    let isMasterAdminSession = false; // 총괄 관리자(77985590) 인증 세션 여부
+    let currentUserRole = 'guest';    // 'admin' (현장 축의대 관리자) | 'couple' (신랑·신부 전용) | 'guest'
 
-    // Firebase Configuration
+    const directFirebaseConfig = {
+      apiKey: "AIzaSyCSUS-Abc_Rtxtxq6wYLhlsFxwA1erbBjk",
+      authDomain: "merrydam.firebaseapp.com",
+      projectId: "merrydam",
+      storageBucket: "merrydam.firebasestorage.app",
+      messagingSenderId: "640685534966",
+      appId: "1:640685534966:web:7279f60ff4180fe47086d7",
+      measurementId: "G-01YSQ6LMP2"
+    };
+
     const firebaseConfig = typeof __firebase_config !== 'undefined'
       ? JSON.parse(__firebase_config)
-      : {
-          apiKey: "DEMO_KEY",
-          authDomain: "merrydam-wedding.firebaseapp.com",
-          projectId: "merrydam-wedding",
-          storageBucket: "merrydam-wedding.appspot.com",
-          messagingSenderId: "1234567890",
-          appId: "1:1234567890:web:abcdef123456"
-        };
+      : directFirebaseConfig;
 
     let app = null;
     let auth = null;
     let db = null;
     let currentUser = null;
     let isCloudActive = false;
-    let unsubscribeRealtime = null;
 
-    let records = [];
+    let unsubscribeWeddings = null;
+    let unsubscribeRecords = null;
+
+    // State Variables
+    let weddings = [];          // 전체 예식 목록
+    let activeWedding = null;    // 현재 선택/진입한 예식 객체
+    let allRecords = [];         // 전체 접수 레코드 (메모리상 필터링용)
+    let records = [];            // 현재 activeWedding에 속한 레코드들
+
     let currentTab = 'home';
     let currentFilter = 'all';
     let searchQuery = '';
+    let weddingSearchQuery = '';
+    let selectedWeddingForAuth = null;
+
     let sideRatioChartInstance = null;
     let amountDistChartInstance = null;
 
+    /**
+     * 한국식 성명 자동 마스킹 헬퍼 함수
+     * 예: 전형민 -> 전OO, 김민지 -> 김OO, 남궁민수 -> 남OOO, 이진 -> 이O
+     */
+    function maskName(name) {
+      if (!name) return '';
+      const trimmed = String(name).trim();
+      if (trimmed.length <= 1) return trimmed;
+      // 이미 OO 등이 포함되어 있는 경우 보존
+      if (trimmed.includes('O') || trimmed.includes('o') || trimmed.includes('*')) {
+        return trimmed;
+      }
+      const firstChar = trimmed.charAt(0);
+      const remainingCount = trimmed.length - 1;
+      return firstChar + 'O'.repeat(remainingCount);
+    }
+
+    /**
+     * 사생활 보호를 위한 웨딩홀 / 장소 자동 마스킹 헬퍼 함수
+     * 예: "메리담 웨딩홀 1층 그랜드볼룸" -> "메OO 웨딩홀 1층 그랜드볼룸"
+     * 예: "아펠가모 반포" -> "아OOO 반포"
+     */
+    function maskVenue(venue) {
+      if (!venue) return '';
+      const trimmed = String(venue).trim();
+      if (!trimmed) return '';
+      // 이미 마스킹되어 있다면 보존
+      if (trimmed.includes('O') || trimmed.includes('o') || trimmed.includes('*')) {
+        return trimmed;
+      }
+
+      const parts = trimmed.split(/\s+/);
+      if (parts.length === 0) return trimmed;
+
+      const firstWord = parts[0];
+      let maskedFirst = '';
+      if (firstWord.length <= 1) {
+        maskedFirst = firstWord;
+      } else if (firstWord.length === 2) {
+        maskedFirst = firstWord.charAt(0) + 'O';
+      } else {
+        maskedFirst = firstWord.charAt(0) + 'O'.repeat(firstWord.length - 1);
+      }
+      parts[0] = maskedFirst;
+      return parts.join(' ');
+    }
+
+    // Security shortcut prevention
     window.addEventListener('keydown', (e) => {
       if (e.key === 'F12' || e.keyCode === 123) {
         e.preventDefault();
@@ -908,14 +1247,12 @@
         showToast('보안 정책에 의해 개발자 도구 진입이 제한됩니다.', 'warning');
         return false;
       }
-
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
         e.preventDefault();
         e.stopPropagation();
         showToast('보안 정책에 의해 개발자 도구 진입이 제한됩니다.', 'warning');
         return false;
       }
-
       if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
         e.stopPropagation();
@@ -933,7 +1270,6 @@
     async function initializeSystem() {
       selectSide('groom');
       setQuickAmount(100000);
-      updateNextEnvelopeNumber();
 
       document.getElementById('authPasswordInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') submitPasswordModal();
@@ -944,7 +1280,6 @@
         auth = getAuth(app);
         db = getFirestore(app);
 
-        // Authenticate before Firestore queries (Rule 3)
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
         } else {
@@ -954,30 +1289,32 @@
         currentUser = auth.currentUser;
         if (currentUser) {
           isCloudActive = true;
-          updateCloudSyncStatusBadge(true, '실시간 동기화 완료');
-          attachRealtimeSnapshot();
+          updateCloudSyncStatusBadge(true, '실시간 클라우드 동기화 가동 중');
+          attachWeddingsSnapshot();
+          attachRecordsSnapshot();
         } else {
-          updateCloudSyncStatusBadge(false, '단독 로컬 모드');
-          renderApp();
+          fallbackLocalMode();
         }
       } catch (err) {
-        console.warn("Cloud connection status notice:", err);
-        isCloudActive = false;
-        updateCloudSyncStatusBadge(false, '단독 오프라인 모드');
-        renderApp();
+        console.warn("Cloud connection fallback:", err);
+        fallbackLocalMode();
       }
     }
 
-    function attachRealtimeSnapshot() {
+    function fallbackLocalMode() {
+      isCloudActive = false;
+      updateCloudSyncStatusBadge(false, '로컬 독립 모드');
+      seedSampleWeddingsIfEmpty();
+      renderWeddingPortalList();
+    }
+
+    function attachWeddingsSnapshot() {
       if (!db || !currentUser) return;
 
-      // Public shared collection path (Rule 1)
-      const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+      const weddingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'weddings');
+      if (unsubscribeWeddings) unsubscribeWeddings();
 
-      if (unsubscribeRealtime) unsubscribeRealtime();
-
-      // Simple collection query without compound operators (Rule 2)
-      unsubscribeRealtime = onSnapshot(recordsCol, (snapshot) => {
+      unsubscribeWeddings = onSnapshot(weddingsCol, (snapshot) => {
         const synced = [];
         snapshot.forEach(docSnap => {
           synced.push({
@@ -986,40 +1323,641 @@
           });
         });
 
-        // In-memory sorting by creation time descending (Rule 2 compliant)
-        synced.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        records = synced;
-
-        renderApp();
-        updateNextEnvelopeNumber();
-      }, (error) => {
-        console.error("Firestore onSnapshot error:", error);
-        showToast('실시간 동기화 오류: ' + error.message, 'warning');
-        updateCloudSyncStatusBadge(false, '동기화 연결 끊김');
+        weddings = synced;
+        if (weddings.length === 0) {
+          seedDefaultWedding();
+        } else {
+          sortWeddingsByRecent();
+          renderWeddingPortalList();
+          renderAdminWeddingsList();
+          checkRestorableSession();
+        }
+      }, (err) => {
+        console.error("Weddings snapshot error:", err);
+        showToast('예식 정보 동기화 중 오류가 발생했습니다.', 'warning');
       });
     }
 
-    function updateCloudSyncStatusBadge(connected, text) {
-      const badge = document.getElementById('cloudStatusBadge');
-      const dot = document.getElementById('cloudStatusDot');
-      const label = document.getElementById('cloudStatusText');
+    function attachRecordsSnapshot() {
+      if (!db || !currentUser) return;
 
-      if (!badge || !dot || !label) return;
+      const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+      if (unsubscribeRecords) unsubscribeRecords();
 
-      if (connected) {
-        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors';
-        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
-        label.innerText = text || '실시간 클라우드 연동 중';
+      unsubscribeRecords = onSnapshot(recordsCol, (snapshot) => {
+        const synced = [];
+        snapshot.forEach(docSnap => {
+          synced.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+
+        allRecords = synced;
+        filterRecordsForActiveWedding();
+      }, (err) => {
+        console.error("Records snapshot error:", err);
+      });
+    }
+
+    /**
+     * 철저한 데이터 격리: activeWedding.id 기준 완벽 분리 필터링
+     */
+    function filterRecordsForActiveWedding() {
+      if (!activeWedding) {
+        records = [];
+        renderApp();
+        return;
+      }
+      records = allRecords
+        .filter(r => r.weddingId === activeWedding.id)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      renderApp();
+      updateNextEnvelopeNumber();
+    }
+
+    function sortWeddingsByRecent() {
+      weddings.sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateB.localeCompare(dateA); // 최근 날짜가 위로
+        const timeA = a.time || '';
+        const timeB = b.time || '';
+        if (timeA !== timeB) return timeB.localeCompare(timeA);
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+    }
+
+    async function seedDefaultWedding() {
+      const defaultWedding = {
+        id: 'wed_20261013_sample',
+        date: '2026-10-13',
+        time: '15:00 (3시)',
+        groomName: '전형민',
+        brideName: '김민지',
+        venue: '메리담 웨딩홀 1층 그랜드볼룸',
+        password: '1234',
+        createdAt: Date.now()
+      };
+
+      if (isCloudActive && currentUser && db) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', defaultWedding.id);
+        await setDoc(docRef, defaultWedding);
       } else {
-        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 transition-colors';
-        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-        label.innerText = text || '로컬 독립 모드';
+        weddings = [defaultWedding];
+        renderWeddingPortalList();
+        renderAdminWeddingsList();
+      }
+    }
+
+    function seedSampleWeddingsIfEmpty() {
+      if (weddings.length === 0) {
+        weddings = [{
+          id: 'wed_20261013_sample',
+          date: '2026-10-13',
+          time: '15:00 (3시)',
+          groomName: '전형민',
+          brideName: '김민지',
+          venue: '메리담 웨딩홀 1층 그랜드볼룸',
+          password: '1234',
+          createdAt: Date.now()
+        }];
+      }
+    }
+
+    /**
+     * 포털 리스트 렌더링 - 신랑/신부 성함 및 웨딩홀 명칭 사생활 안심 마스킹
+     */
+    function renderWeddingPortalList() {
+      const container = document.getElementById('weddingListContainer');
+      const emptyState = document.getElementById('weddingListEmpty');
+      if (!container) return;
+
+      const filtered = weddings.filter(w => {
+        if (!weddingSearchQuery) return true;
+        const q = weddingSearchQuery.toLowerCase();
+        const maskedG = maskName(w.groomName).toLowerCase();
+        const maskedB = maskName(w.brideName).toLowerCase();
+        const rawG = (w.groomName || '').toLowerCase();
+        const rawB = (w.brideName || '').toLowerCase();
+        const maskedV = maskVenue(w.venue).toLowerCase();
+        const rawV = (w.venue || '').toLowerCase();
+        const fullTitle = `${w.date} ${rawG} ${rawB} ${maskedG} ${maskedB} ${w.time} ${maskedV} ${rawV}`.toLowerCase();
+        return fullTitle.includes(q);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      container.innerHTML = filtered.map(w => {
+        const parts = w.date ? w.date.split('-') : [];
+        const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}년 ${parts[1]}월 ${parts[2]}일` : w.date;
+        const groomMasked = maskName(w.groomName);
+        const brideMasked = maskName(w.brideName);
+        const venueMasked = maskVenue(w.venue);
+
+        return `
+          <div onclick="promptWeddingPassword('${w.id}')"
+            class="group cursor-pointer p-4 sm:p-5 rounded-2xl bg-stone-50/90 hover:bg-white border border-stone-200 hover:border-[#C5A059] shadow-xs hover:shadow-card transition-all duration-200 flex items-center justify-between">
+            <div class="space-y-1.5 flex-1 pr-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200 font-mono">
+                  <i class="fa-regular fa-clock mr-1 text-[10px]"></i>
+                  ${dateDisplay} ${w.time}
+                </span>
+                ${venueMasked ? `<span class="text-[11px] text-stone-500 font-medium truncate max-w-[200px]"><i class="fa-solid fa-location-dot text-amber-600 mr-1 text-[10px]"></i>${escapeHtml(venueMasked)}</span>` : ''}
+              </div>
+              <div class="text-base sm:text-lg font-bold text-stone-900 group-hover:text-amber-900 transition-colors flex items-center space-x-2">
+                <span>신랑 ${escapeHtml(groomMasked)}</span>
+                <span class="text-rose-400 font-normal">♥</span>
+                <span>신부 ${escapeHtml(brideMasked)}</span>
+                <span class="text-xs text-stone-500 font-normal">예식</span>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2 text-stone-400 group-hover:text-[#C5A059] transition-colors">
+              <span class="text-xs font-bold hidden sm:inline">접수대 입장</span>
+              <div class="w-9 h-9 rounded-xl bg-white group-hover:bg-amber-500 group-hover:text-white border border-stone-200 group-hover:border-amber-600 flex items-center justify-center transition-all shadow-xs">
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleWeddingSearch(val) {
+      weddingSearchQuery = val.trim();
+      renderWeddingPortalList();
+    }
+
+    function promptWeddingPassword(weddingId) {
+      const target = weddings.find(w => w.id === weddingId);
+      if (!target) return;
+
+      selectedWeddingForAuth = target;
+      const modal = document.getElementById('weddingAuthModal');
+      const titleEl = document.getElementById('authModalWeddingTitle');
+      const inputEl = document.getElementById('weddingAuthPassInput');
+      const errEl = document.getElementById('weddingAuthErrorMsg');
+
+      const parts = target.date ? target.date.split('-') : [];
+      const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}년 ${parts[1]}월 ${parts[2]}일` : target.date;
+      const groomMasked = maskName(target.groomName);
+      const brideMasked = maskName(target.brideName);
+      titleEl.innerText = `${dateDisplay} ${groomMasked} 신랑 ${brideMasked} 신부 ${target.time} 예식`;
+
+      inputEl.value = '';
+      errEl.classList.add('hidden');
+      modal.classList.remove('hidden');
+
+      setTimeout(() => inputEl.focus(), 80);
+    }
+
+    function closeWeddingAuthModal() {
+      document.getElementById('weddingAuthModal').classList.add('hidden');
+      selectedWeddingForAuth = null;
+    }
+
+    /**
+     * 권한별 비밀번호 검증 & 신랑·신부 역할 자동 분기
+     */
+    function handleWeddingPasscodeSubmit(e) {
+      e.preventDefault();
+      if (!selectedWeddingForAuth) return;
+
+      const target = selectedWeddingForAuth;
+      const inputEl = document.getElementById('weddingAuthPassInput');
+      const entered = inputEl.value.trim();
+      const errEl = document.getElementById('weddingAuthErrorMsg');
+
+      if (entered === ADMIN_PASSWORD) {
+        // 총괄 관리자 / 메리담 현장 요원 비밀번호
+        isMasterAdminSession = true;
+        currentUserRole = 'admin';
+        sessionStorage.setItem('merrydam_user_role', 'admin');
+        closeWeddingAuthModal();
+        enterWedding(target);
+        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 예식 (현장 접수대 모드)으로 입장했습니다.`, 'success');
+      } else if (entered === target.password) {
+        // 부여받은 신랑·신부 전용 비밀번호
+        isMasterAdminSession = false;
+        currentUserRole = 'couple';
+        sessionStorage.setItem('merrydam_user_role', 'couple');
+        closeWeddingAuthModal();
+        enterWedding(target);
+        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 예식 (신랑·신부 실시간 열람 모드)으로 입장했습니다.`, 'success');
+      } else {
+        errEl.classList.remove('hidden');
+        inputEl.select();
+      }
+    }
+
+    function enterWedding(wedding) {
+      if (!wedding) return;
+      activeWedding = wedding;
+      sessionStorage.setItem('merrydam_active_wedding_id', wedding.id);
+
+      // Hide portal screen
+      document.getElementById('gateLockScreen').classList.add('hidden');
+
+      // Update header badges with automatic masking
+      const parts = wedding.date ? wedding.date.split('-') : [];
+      const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}.${parts[1]}.${parts[2]}` : wedding.date;
+      const groomMasked = maskName(wedding.groomName);
+      const brideMasked = maskName(wedding.brideName);
+      const venueMasked = maskVenue(wedding.venue);
+      const venueStr = venueMasked ? ` [${venueMasked}]` : '';
+      const headerText = `${dateDisplay} ${wedding.time} | 신랑 ${groomMasked} ♥ 신부 ${brideMasked}${venueStr}`;
+      
+      const badge = document.getElementById('headerWeddingBadge');
+      if (badge) badge.innerText = headerText;
+
+      const footerLabel = document.getElementById('footerWeddingLabel');
+      if (footerLabel) footerLabel.innerText = `${groomMasked} ♥ ${brideMasked} 예식 진행 중`;
+
+      // 권한별 UI 제어 적용
+      applyRolePermissionsUI();
+
+      filterRecordsForActiveWedding();
+      updateAdminSharePreview();
+    }
+
+    /**
+     * 권한별 UI 제어 (신랑·신부: 조회 및 엑셀 다운로드만 허용, 작성/수정/삭제 원천 차단)
+     */
+    function applyRolePermissionsUI() {
+      const roleBadge = document.getElementById('headerRoleBadge');
+      const coupleBanner = document.getElementById('coupleViewOnlyBanner');
+      const formCard = document.getElementById('receptionFormCard');
+      const resetBtn = document.getElementById('resetWeddingDataBtn');
+      const headerLockIcon = document.getElementById('headerExcelLockIcon');
+
+      if (currentUserRole === 'couple') {
+        // 신랑·신부 모드
+        if (roleBadge) {
+          roleBadge.className = 'px-2 py-0.5 text-[11px] font-extrabold rounded-full bg-amber-500 text-white shadow-xs';
+          roleBadge.innerText = '신랑·신부 열람용';
+        }
+        if (coupleBanner) coupleBanner.classList.remove('hidden');
+        if (resetBtn) resetBtn.classList.add('hidden');
+        if (headerLockIcon) {
+          headerLockIcon.className = 'fa-solid fa-download text-[10px] text-green-200 ml-0.5';
+        }
+
+        // 입력 폼 잠금 처리 (실수 방지)
+        if (formCard) {
+          formCard.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
+          const submitBtn = formCard.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = true;
+        }
+      } else {
+        // 관리자 / 현장 접수대 모드
+        if (roleBadge) {
+          roleBadge.className = 'px-2 py-0.5 text-[11px] font-extrabold rounded-full bg-stone-900 text-amber-300 shadow-xs border border-amber-400/40';
+          roleBadge.innerText = '현장 접수대 (관리자)';
+        }
+        if (coupleBanner) coupleBanner.classList.add('hidden');
+        if (resetBtn) resetBtn.classList.remove('hidden');
+        if (headerLockIcon) {
+          headerLockIcon.className = 'fa-solid fa-file-excel text-[10px] text-green-200 ml-0.5';
+        }
+
+        // 입력 폼 활성화
+        if (formCard) {
+          formCard.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
+          const submitBtn = formCard.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      }
+    }
+
+    /**
+     * 타 예식 접근 방지를 위한 안전 세션 퇴장
+     */
+    function confirmExitWeddingSession() {
+      showConfirmModal({
+        title: '접수대 세션 종료',
+        message: '현재 예식 접수대를 나가시겠습니까? 다른 예식 접근을 방지하기 위해 세션이 안전하게 종료되며, 재진입 시 비밀번호가 다시 요구됩니다.',
+        iconBg: 'bg-stone-100 text-stone-700',
+        icon: 'fa-arrow-right-from-bracket',
+        okText: '나가기',
+        onConfirm: () => {
+          returnToWeddingPortal();
+        }
+      });
+    }
+
+    function returnToWeddingPortal() {
+      activeWedding = null;
+      records = [];
+      isMasterAdminSession = false;
+      currentUserRole = 'guest';
+      sessionStorage.removeItem('merrydam_active_wedding_id');
+      sessionStorage.removeItem('merrydam_user_role');
+
+      // UI 클린업
+      const tbody = document.getElementById('recordsTableBody');
+      if (tbody) tbody.innerHTML = '';
+      if (sideRatioChartInstance) sideRatioChartInstance.destroy();
+      if (amountDistChartInstance) amountDistChartInstance.destroy();
+
+      document.getElementById('gateLockScreen').classList.remove('hidden');
+      renderWeddingPortalList();
+    }
+
+    function checkRestorableSession() {
+      const savedId = sessionStorage.getItem('merrydam_active_wedding_id');
+      const savedRole = sessionStorage.getItem('merrydam_user_role');
+      if (savedId) {
+        const found = weddings.find(w => w.id === savedId);
+        if (found) {
+          currentUserRole = savedRole || 'couple';
+          if (currentUserRole === 'admin') isMasterAdminSession = true;
+          enterWedding(found);
+        }
+      }
+    }
+
+    function requestAdminAndOpenNewWedding() {
+      requestPasswordAndExecute('새 예식 개설 권한 확인', () => {
+        openNewWeddingModalDirectly();
+      });
+    }
+
+    /**
+     * 새 예식 추가 모달 열기:
+     * 들어와서 보고 있는 페이지 정보가 남아있지 않도록 깨끗하게 reset 처리
+     */
+    function openNewWeddingModalDirectly() {
+      const form = document.getElementById('newWeddingForm');
+      if (form) form.reset();
+
+      // 날짜 기본값
+      const dateInput = document.getElementById('newWeddingDate');
+      if (dateInput) {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dateInput.value = `${y}-${m}-${day}`;
+      }
+
+      // 시간 기본값 및 칩 초기화
+      selectQuickWeddingTime('15:00 (3시)');
+
+      // 신랑, 신부 성함 필드 및 마스킹 미리보기 초기화
+      document.getElementById('newWeddingGroom').value = '';
+      document.getElementById('newWeddingBride').value = '';
+      document.getElementById('groomMaskPreview').innerText = '전OO';
+      document.getElementById('brideMaskPreview').innerText = '김OO';
+      document.getElementById('newWeddingVenue').value = '';
+      document.getElementById('venueMaskPreview').innerText = '메OO 웨딩홀 1층 그랜드볼룸';
+
+      // 새 랜덤 비밀번호 발급
+      generateRandomPasscodeForNewWedding();
+
+      document.getElementById('newWeddingModal').classList.remove('hidden');
+    }
+
+    function closeNewWeddingModal() {
+      document.getElementById('newWeddingModal').classList.add('hidden');
+    }
+
+    function generateRandomPasscodeForNewWedding() {
+      const pwd = Math.floor(100000 + Math.random() * 900000).toString();
+      document.getElementById('newWeddingPassword').value = pwd;
+    }
+
+    function selectQuickWeddingTime(timeStr) {
+      const timeInput = document.getElementById('newWeddingTime');
+      const timePreview = document.getElementById('newWeddingTimePreview');
+      if (timeInput) timeInput.value = timeStr;
+      if (timePreview) timePreview.innerText = `선택된 시간: ${timeStr}`;
+
+      const chips = document.querySelectorAll('.time-chip');
+      chips.forEach(chip => {
+        if (chip.innerText.trim() === timeStr.trim()) {
+          chip.className = 'time-chip py-1.5 text-xs font-bold rounded-lg border border-amber-600 bg-amber-500 text-white shadow-xs';
+        } else {
+          chip.className = 'time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50';
+        }
+      });
+    }
+
+    function updateGroomMaskPreview(val) {
+      const preview = document.getElementById('groomMaskPreview');
+      preview.innerText = maskName(val) || '전OO';
+    }
+
+    function updateBrideMaskPreview(val) {
+      const preview = document.getElementById('brideMaskPreview');
+      preview.innerText = maskName(val) || '김OO';
+    }
+
+    function updateVenueMaskPreview(val) {
+      const preview = document.getElementById('venueMaskPreview');
+      preview.innerText = maskVenue(val) || '메OO 웨딩홀 1층 그랜드볼룸';
+    }
+
+    async function handleNewWeddingSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('newWeddingDate').value;
+      const time = document.getElementById('newWeddingTime').value.trim();
+      const rawGroom = document.getElementById('newWeddingGroom').value.trim();
+      const rawBride = document.getElementById('newWeddingBride').value.trim();
+      const venue = document.getElementById('newWeddingVenue').value.trim();
+      const password = document.getElementById('newWeddingPassword').value.trim();
+
+      if (!date || !time || !rawGroom || !rawBride || !password) {
+        showToast('필수 예식 정보를 모두 입력해 주세요.', 'warning');
+        return;
+      }
+
+      // 고유 예식 식별자 생성
+      const newId = 'wed_' + date.replace(/-/g, '') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
+      const newWeddingObj = {
+        id: newId,
+        date,
+        time,
+        groomName: rawGroom,
+        brideName: rawBride,
+        venue,
+        password,
+        createdAt: Date.now()
+      };
+
+      try {
+        if (isCloudActive && currentUser && db) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', newId);
+          await setDoc(docRef, newWeddingObj);
+        } else {
+          weddings.unshift(newWeddingObj);
+          sortWeddingsByRecent();
+          renderWeddingPortalList();
+          renderAdminWeddingsList();
+        }
+
+        closeNewWeddingModal();
+        const maskedG = maskName(rawGroom);
+        const maskedB = maskName(rawBride);
+        showToast(`[${maskedG} ♥ ${maskedB}] 예식이 안전하게 개설되었습니다!`, 'success');
+        
+        // 관리자 권한으로 바로 해당 예식 진입
+        isMasterAdminSession = true;
+        currentUserRole = 'admin';
+        sessionStorage.setItem('merrydam_user_role', 'admin');
+        enterWedding(newWeddingObj);
+      } catch (err) {
+        console.error("Save new wedding error:", err);
+        showToast('예식 생성 실패: ' + err.message, 'warning');
+      }
+    }
+
+    function requestAdminAccess() {
+      requestPasswordAndExecute('총괄 관리자 센터 인증', () => {
+        isMasterAdminSession = true;
+        openAdminCenterModal();
+      });
+    }
+
+    function openAdminCenterModal() {
+      renderAdminWeddingsList();
+      updateAdminSharePreview();
+      document.getElementById('adminCenterModal').classList.remove('hidden');
+    }
+
+    function closeAdminCenterModal() {
+      document.getElementById('adminCenterModal').classList.add('hidden');
+    }
+
+    function renderAdminWeddingsList() {
+      const listEl = document.getElementById('adminWeddingList');
+      if (!listEl) return;
+
+      if (weddings.length === 0) {
+        listEl.innerHTML = `<div class="text-xs text-stone-400 py-3 text-center">등록된 예식이 없습니다.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = weddings.map(w => {
+        const maskedG = maskName(w.groomName);
+        const maskedB = maskName(w.brideName);
+        const maskedV = maskVenue(w.venue);
+        return `
+          <div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
+            <div>
+              <div class="font-bold text-stone-900">${w.date} ${w.time} [${escapeHtml(maskedG)} ♥ ${escapeHtml(maskedB)}]</div>
+              ${maskedV ? `<div class="text-[11px] text-stone-500">${escapeHtml(maskedV)}</div>` : ''}
+              <div class="text-stone-500 font-mono text-[11px] mt-0.5">신랑·신부 접속 비밀번호: <strong class="text-amber-900 font-bold">${w.password}</strong></div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <button onclick="enterWeddingFromAdmin('${w.id}')" class="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold rounded-lg text-[11px]">
+                관리자 입장
+              </button>
+              <button onclick="confirmDeleteWedding('${w.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px]">
+                삭제
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function enterWeddingFromAdmin(wId) {
+      const target = weddings.find(w => w.id === wId);
+      if (target) {
+        isMasterAdminSession = true;
+        currentUserRole = 'admin';
+        sessionStorage.setItem('merrydam_user_role', 'admin');
+        closeAdminCenterModal();
+        enterWedding(target);
+      }
+    }
+
+    function confirmDeleteWedding(wId) {
+      const target = weddings.find(w => w.id === wId);
+      if (!target) return;
+
+      const maskedG = maskName(target.groomName);
+      const maskedB = maskName(target.brideName);
+
+      showConfirmModal({
+        title: '예식 삭제',
+        message: `[${maskedG} ♥ ${maskedB}] 예식을 정말 삭제하시겠습니까? 해당 예식의 모든 접수 장부 데이터가 완전히 영구 삭제됩니다.`,
+        iconBg: 'bg-rose-100 text-rose-600',
+        icon: 'fa-trash-can',
+        okText: '삭제',
+        onConfirm: async () => {
+          try {
+            if (isCloudActive && currentUser && db) {
+              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weddings', wId);
+              await deleteDoc(docRef);
+
+              // 해당 예식의 장부 레코드 일괄 정리
+              const batch = writeBatch(db);
+              const targetRecords = allRecords.filter(r => r.weddingId === wId);
+              targetRecords.forEach(r => {
+                const rRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', r.id);
+                batch.delete(rRef);
+              });
+              await batch.commit();
+            } else {
+              weddings = weddings.filter(w => w.id !== wId);
+              allRecords = allRecords.filter(r => r.weddingId !== wId);
+              renderWeddingPortalList();
+              renderAdminWeddingsList();
+            }
+            if (activeWedding && activeWedding.id === wId) {
+              returnToWeddingPortal();
+            }
+            showToast('예식 및 관련 장부가 안전하게 삭제되었습니다.', 'info');
+          } catch (err) {
+            showToast('삭제 실패: ' + err.message, 'warning');
+          }
+        }
+      });
+    }
+
+    function updateAdminSharePreview() {
+      const target = activeWedding || weddings[0];
+      const previewEl = document.getElementById('adminSharePreview');
+      if (!previewEl) return;
+
+      if (!target) {
+        previewEl.value = '등록된 예식이 없습니다.';
+        return;
+      }
+
+      const maskedG = maskName(target.groomName);
+      const maskedB = maskName(target.brideName);
+      const maskedV = maskVenue(target.venue);
+      const currentUrl = window.location.href.split('#')[0];
+      const text = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${currentUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 위 비밀번호로 접속 시 장부 실시간 모니터링 및 엑셀 다운로드가 가능합니다.`;
+      previewEl.value = text;
+    }
+
+    function copyShareTextToClipboard() {
+      const textarea = document.getElementById('adminSharePreview');
+      if (!textarea) return;
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      try {
+        document.execCommand('copy');
+        showToast('신랑·신부 공유 안내 문구가 복사되었습니다.', 'success');
+      } catch (err) {
+        showToast('복사에 실패했습니다. 문구를 직접 복사해 주세요.', 'warning');
       }
     }
 
     function switchTab(tab) {
       currentTab = tab;
-
       const secHome = document.getElementById('sectionHome');
       const secList = document.getElementById('sectionList');
       const secStats = document.getElementById('sectionStats');
@@ -1054,7 +1992,6 @@
 
     function selectSide(side) {
       document.getElementById('selectedSide').value = side;
-      
       const btnGroom = document.getElementById('sideBtnGroom');
       const btnBride = document.getElementById('sideBtnBride');
       const btnNeutral = document.getElementById('sideBtnNeutral');
@@ -1083,7 +2020,6 @@
 
     function setQuickAmount(amount) {
       document.getElementById('finalAmount').value = amount;
-      
       const buttons = document.querySelectorAll('.amount-btn');
       buttons.forEach(btn => {
         const val = parseInt(btn.getAttribute('data-amount'), 10);
@@ -1164,7 +2100,6 @@
       if (num === 0) return '0원';
       const man = Math.floor(num / 10000);
       const remainder = num % 10000;
-
       let result = '';
       if (man > 0) {
         const units = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
@@ -1174,18 +2109,13 @@
         let pos = 0;
         while (m > 0) {
           let d = m % 10;
-          if (d > 0) {
-            manStr = (pos > 0 && d === 1 ? '' : units[d]) + digits[pos] + manStr;
-          }
+          if (d > 0) manStr = (pos > 0 && d === 1 ? '' : units[d]) + digits[pos] + manStr;
           m = Math.floor(m / 10);
           pos++;
         }
         result += manStr + '만';
       }
-
-      if (remainder > 0) {
-        result += remainder.toLocaleString();
-      }
+      if (remainder > 0) result += remainder.toLocaleString();
       return result + '원';
     }
 
@@ -1214,8 +2144,22 @@
       el.focus();
     }
 
+    /**
+     * 접수 등록 핸들러 (관리자 전용: 신랑·신부 모드는 사전에 차단)
+     */
     async function handleFormSubmit(e) {
       e.preventDefault();
+
+      if (currentUserRole === 'couple') {
+        showToast('신랑·신부 열람 모드에서는 장부 작성이 제한됩니다. 접수는 현장 요원이 처리합니다.', 'warning');
+        return;
+      }
+
+      if (!activeWedding) {
+        showToast('먼저 접수할 예식을 선택해 주세요.', 'warning');
+        returnToWeddingPortal();
+        return;
+      }
 
       const nameInput = document.getElementById('guestName');
       const name = nameInput.value.trim();
@@ -1226,13 +2170,14 @@
       }
 
       const side = document.getElementById('selectedSide').value;
-      const amount = parseInt(document.getElementById('finalAmount').value || 0, 10);
-      if (amount <= 0) {
+      const rawAmount = document.getElementById('finalAmount').value;
+      const amount = parseInt(rawAmount, 10);
+      if (isNaN(amount) || amount <= 0) {
         showToast('올바른 축의 금액을 선택하거나 입력해 주세요.', 'warning');
         return;
       }
 
-      const tickets = parseInt(document.getElementById('ticketCountInput').value || 0, 10);
+      const tickets = Math.max(0, parseInt(document.getElementById('ticketCountInput').value || 0, 10));
       const memo = document.getElementById('memo').value.trim();
       const nextNum = getNextEnvelopeNumberForSide(side);
 
@@ -1243,26 +2188,25 @@
 
       const newRecord = {
         id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        weddingId: activeWedding.id,
         envelopeNum: nextNum,
         side,
         name,
-        amount,
-        tickets,
+        amount: Math.round(amount),
+        tickets: Math.round(tickets),
         memo,
         timestamp,
         createdAt: Date.now(),
-        creatorUid: currentUser?.uid || 'offline-desk'
+        creatorUid: currentUser?.uid || 'anonymous'
       };
 
       try {
         if (isCloudActive && currentUser && db) {
-          // Public collection document (Rule 1)
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', newRecord.id);
           await setDoc(docRef, newRecord);
         } else {
-          records.unshift(newRecord);
-          renderApp();
-          updateNextEnvelopeNumber();
+          allRecords.unshift(newRecord);
+          filterRecordsForActiveWedding();
         }
 
         try {
@@ -1284,12 +2228,13 @@
         nameInput.focus();
         updateNextEnvelopeNumber();
       } catch (saveErr) {
-        console.error("Cloud registration error:", saveErr);
+        console.error("Save error:", saveErr);
         showToast('접수 저장 중 오류가 발생했습니다: ' + saveErr.message, 'warning');
       }
     }
 
     function resetForm() {
+      if (currentUserRole === 'couple') return;
       document.getElementById('guestName').value = '';
       document.getElementById('memo').value = '';
       document.getElementById('ticketCountInput').value = 1;
@@ -1299,6 +2244,7 @@
     }
 
     function getNextEnvelopeNumberForSide(side) {
+      if (!activeWedding) return 1;
       const sideRecords = records.filter(r => r.side === side);
       if (sideRecords.length === 0) return 1;
       const max = Math.max(...sideRecords.map(r => r.envelopeNum || 0));
@@ -1317,22 +2263,42 @@
       renderListTable();
     }
 
+    /**
+     * 금액, 건수, 식권, 평균 축의금 - 철저한 무오류 정수 누산 검증
+     */
     function updateSummaries() {
-      const totalAmount = records.reduce((sum, r) => sum + r.amount, 0);
-      const totalTickets = records.reduce((sum, r) => sum + r.tickets, 0);
+      // 정수형 엄격 누적
+      let groomAmount = 0;
+      let brideAmount = 0;
+      let neutralAmount = 0;
+      let totalTickets = 0;
+      let groomCount = 0;
+      let brideCount = 0;
+      let neutralCount = 0;
+
+      for (let i = 0; i < records.length; i++) {
+        const r = records[i];
+        const amt = Math.round(Number(r.amount) || 0);
+        const tkt = Math.round(Number(r.tickets) || 0);
+        totalTickets += tkt;
+
+        if (r.side === 'groom') {
+          groomAmount += amt;
+          groomCount++;
+        } else if (r.side === 'bride') {
+          brideAmount += amt;
+          brideCount++;
+        } else {
+          neutralAmount += amt;
+          neutralCount++;
+        }
+      }
+
+      // 교차 검증: 총합은 반드시 신랑 + 신부 + 미구분
+      const totalAmount = groomAmount + brideAmount + neutralAmount;
       const totalCount = records.length;
 
-      const groomRecords = records.filter(r => r.side === 'groom');
-      const brideRecords = records.filter(r => r.side === 'bride');
-      const neutralRecords = records.filter(r => r.side === 'neutral');
-
-      const groomAmount = groomRecords.reduce((sum, r) => sum + r.amount, 0);
-      const brideAmount = brideRecords.reduce((sum, r) => sum + r.amount, 0);
-
-      document.getElementById('quickTotalAmount').innerText = totalAmount.toLocaleString() + '원';
-      document.getElementById('quickTotalTickets').innerText = totalTickets.toLocaleString() + '장';
       document.getElementById('tabCountBadge').innerText = totalCount;
-
       document.getElementById('summaryTotalCount').innerText = totalCount;
       document.getElementById('summaryTotalTickets').innerText = totalTickets;
       document.getElementById('summaryGroomAmount').innerText = groomAmount.toLocaleString() + '원';
@@ -1346,18 +2312,19 @@
 
       document.getElementById('kpiTotalAmount').innerText = totalAmount.toLocaleString() + '원';
       document.getElementById('kpiGroomAmount').innerText = groomAmount.toLocaleString() + '원';
-      document.getElementById('kpiGroomCount').innerText = groomRecords.length;
+      document.getElementById('kpiGroomCount').innerText = groomCount;
       document.getElementById('kpiBrideAmount').innerText = brideAmount.toLocaleString() + '원';
-      document.getElementById('kpiBrideCount').innerText = brideRecords.length;
+      document.getElementById('kpiBrideCount').innerText = brideCount;
       document.getElementById('kpiTotalTickets').innerText = totalTickets.toLocaleString() + '장';
       
+      // 평균 1인 축의금 산출 (0으로 나누기 방어)
       const avg = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
       document.getElementById('kpiAvgAmount').innerText = avg.toLocaleString() + '원';
 
       document.getElementById('filterCount_all').innerText = `(${totalCount})`;
-      document.getElementById('filterCount_groom').innerText = `(${groomRecords.length})`;
-      document.getElementById('filterCount_bride').innerText = `(${brideRecords.length})`;
-      document.getElementById('filterCount_neutral').innerText = `(${neutralRecords.length})`;
+      document.getElementById('filterCount_groom').innerText = `(${groomCount})`;
+      document.getElementById('filterCount_bride').innerText = `(${brideCount})`;
+      document.getElementById('filterCount_neutral').innerText = `(${neutralCount})`;
     }
 
     function renderRecentEntries() {
@@ -1388,6 +2355,9 @@
           sidePrefix = '일반';
         }
 
+        const amt = Math.round(Number(r.amount) || 0);
+        const tkt = Math.round(Number(r.tickets) || 0);
+
         return `
           <div class="p-2.5 rounded-xl bg-stone-50/80 hover:bg-stone-100 border border-stone-200/60 flex items-center justify-between transition-colors">
             <div class="flex items-center space-x-2.5">
@@ -1396,8 +2366,8 @@
               <span class="font-bold text-stone-900 text-sm">${escapeHtml(r.name)}</span>
             </div>
             <div class="text-right">
-              <span class="font-extrabold text-stone-900 text-sm">${r.amount.toLocaleString()}원</span>
-              <span class="text-[11px] text-amber-800 ml-1">(${r.tickets}장)</span>
+              <span class="font-extrabold text-stone-900 text-sm">${amt.toLocaleString()}원</span>
+              <span class="text-[11px] text-amber-800 ml-1">(${tkt}장)</span>
             </div>
           </div>
         `;
@@ -1436,6 +2406,7 @@
     function renderListTable() {
       const tbody = document.getElementById('recordsTableBody');
       const emptyState = document.getElementById('tableEmptyState');
+      if (!tbody) return;
 
       let filtered = records.filter(r => {
         const matchesSide = currentFilter === 'all' || r.side === currentFilter;
@@ -1446,8 +2417,13 @@
         return matchesSide && matchesSearch;
       });
 
-      const filteredAmount = filtered.reduce((s, r) => s + r.amount, 0);
-      const filteredTickets = filtered.reduce((s, r) => s + r.tickets, 0);
+      let filteredAmount = 0;
+      let filteredTickets = 0;
+      for (let i = 0; i < filtered.length; i++) {
+        filteredAmount += Math.round(Number(filtered[i].amount) || 0);
+        filteredTickets += Math.round(Number(filtered[i].tickets) || 0);
+      }
+
       document.getElementById('filteredCountText').innerText = filtered.length;
       document.getElementById('filteredAmountText').innerText = filteredAmount.toLocaleString() + '원';
       document.getElementById('filteredTicketText').innerText = filteredTickets + '장';
@@ -1459,6 +2435,8 @@
       }
 
       emptyState.classList.add('hidden');
+
+      const isCouple = currentUserRole === 'couple';
 
       tbody.innerHTML = filtered.map(r => {
         let sideTag = '';
@@ -1475,6 +2453,29 @@
         }
 
         const memoDisplay = r.memo ? escapeHtml(r.memo) : '<span class="text-stone-300">-</span>';
+        const amt = Math.round(Number(r.amount) || 0);
+        const tkt = Math.round(Number(r.tickets) || 0);
+
+        // 신랑·신부 모드일 때는 수정·삭제 버튼 대신 '안심 접수됨' 잠금 표시
+        let actionColumnHtml = '';
+        if (isCouple) {
+          actionColumnHtml = `
+            <span class="inline-flex items-center text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200" title="현장 요원에 의해 안전하게 접수되었습니다.">
+              <i class="fa-solid fa-lock text-[10px] mr-1"></i>정상 접수
+            </span>
+          `;
+        } else {
+          actionColumnHtml = `
+            <div class="inline-flex items-center space-x-1">
+              <button onclick="requestPasswordAndExecute('수정 권한 확인', () => openEditModal('${r.id}'))" class="p-1.5 rounded-lg hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors" title="수정 (관리자 비밀번호 필요)">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="requestPasswordAndExecute('삭제 권한 확인', () => confirmDeleteRecord('${r.id}'))" class="p-1.5 rounded-lg hover:bg-rose-100 text-stone-400 hover:text-rose-600 transition-colors" title="삭제 (관리자 비밀번호 필요)">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          `;
+        }
 
         return `
           <tr class="hover:bg-amber-50/40 transition-colors">
@@ -1482,35 +2483,16 @@
               <span class="text-xs text-stone-400 block">${sidePrefix}</span>
               #${String(r.envelopeNum).padStart(3, '0')}
             </td>
-            <td class="py-3 px-4 text-center">
-              ${sideTag}
-            </td>
-            <td class="py-3 px-4 sm:px-6 font-bold text-stone-900 text-base">
-              ${escapeHtml(r.name)}
-            </td>
-            <td class="py-3 px-4 sm:px-6 text-right font-extrabold text-stone-900 text-base">
-              ${r.amount.toLocaleString()}원
-            </td>
+            <td class="py-3 px-4 text-center">${sideTag}</td>
+            <td class="py-3 px-4 sm:px-6 font-bold text-stone-900 text-base">${escapeHtml(r.name)}</td>
+            <td class="py-3 px-4 sm:px-6 text-right font-extrabold text-stone-900 text-base">${amt.toLocaleString()}원</td>
             <td class="py-3 px-4 sm:px-6 text-center font-bold text-amber-900">
-              <span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100/70 text-xs">
-                ${r.tickets}장
-              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-100/70 text-xs">${tkt}장</span>
             </td>
-            <td class="py-3 px-4 sm:px-6 text-stone-600 text-xs hidden md:table-cell">
-              ${memoDisplay}
-            </td>
-            <td class="py-3 px-4 sm:px-6 text-stone-400 text-xs text-center hidden lg:table-cell font-mono">
-              ${r.timestamp || '-'}
-            </td>
+            <td class="py-3 px-4 sm:px-6 text-stone-600 text-xs hidden md:table-cell">${memoDisplay}</td>
+            <td class="py-3 px-4 sm:px-6 text-stone-400 text-xs text-center hidden lg:table-cell font-mono">${r.timestamp || '-'}</td>
             <td class="py-3 px-4 sm:px-6 text-center no-print">
-              <div class="inline-flex items-center space-x-1">
-                <button onclick="requestPasswordAndExecute('수정 권한 확인', () => openEditModal('${r.id}'))" class="p-1.5 rounded-lg hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-colors" title="수정 (비밀번호 필요)">
-                  <i class="fa-solid fa-pen text-xs"></i>
-                </button>
-                <button onclick="requestPasswordAndExecute('삭제 권한 확인', () => confirmDeleteRecord('${r.id}'))" class="p-1.5 rounded-lg hover:bg-rose-100 text-stone-400 hover:text-rose-600 transition-colors" title="삭제 (비밀번호 필요)">
-                  <i class="fa-solid fa-trash-can text-xs"></i>
-                </button>
-              </div>
+              ${actionColumnHtml}
             </td>
           </tr>
         `;
@@ -1543,6 +2525,11 @@
       const errorEl = document.getElementById('pwdErrorMsg');
 
       if (enteredPass === ADMIN_PASSWORD) {
+        isMasterAdminSession = true;
+        currentUserRole = 'admin';
+        sessionStorage.setItem('merrydam_user_role', 'admin');
+        applyRolePermissionsUI();
+
         document.getElementById('passwordModal').classList.add('hidden');
         if (typeof pendingAuthCallback === 'function') {
           const action = pendingAuthCallback;
@@ -1556,6 +2543,10 @@
     }
 
     function openEditModal(recordId) {
+      if (currentUserRole === 'couple') {
+        showToast('신랑·신부 모드에서는 장부 수정이 불가합니다.', 'warning');
+        return;
+      }
       const rec = records.find(r => r.id === recordId);
       if (!rec) return;
 
@@ -1576,12 +2567,14 @@
 
     async function handleEditSubmit(e) {
       e.preventDefault();
+      if (currentUserRole === 'couple') return;
+
       const id = document.getElementById('editRecordId').value;
       const envelopeNum = parseInt(document.getElementById('editEnvelopeNum').value, 10);
       const side = document.getElementById('editSide').value;
       const name = document.getElementById('editGuestName').value.trim();
-      const amount = parseInt(document.getElementById('editAmount').value, 10);
-      const tickets = parseInt(document.getElementById('editTickets').value, 10);
+      const amount = Math.round(parseInt(document.getElementById('editAmount').value, 10));
+      const tickets = Math.round(parseInt(document.getElementById('editTickets').value, 10));
       const memo = document.getElementById('editMemo').value.trim();
 
       const updateData = { envelopeNum, side, name, amount, tickets, memo, updatedAt: Date.now() };
@@ -1591,23 +2584,22 @@
           const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', id);
           await setDoc(docRef, updateData, { merge: true });
         } else {
-          const index = records.findIndex(r => r.id === id);
+          const index = allRecords.findIndex(r => r.id === id);
           if (index !== -1) {
-            records[index] = { ...records[index], ...updateData };
-            renderApp();
-            updateNextEnvelopeNumber();
+            allRecords[index] = { ...allRecords[index], ...updateData };
+            filterRecordsForActiveWedding();
           }
         }
-
         closeEditModal();
         showToast('성공적으로 수정 및 동기화되었습니다.', 'success');
       } catch (err) {
-        console.error("Edit submit error:", err);
-        showToast('수정 반영 실패: ' + err.message, 'warning');
+        console.error("Edit error:", err);
+        showToast('수정 실패: ' + err.message, 'warning');
       }
     }
 
     function confirmDeleteRecord(recordId) {
+      if (currentUserRole === 'couple') return;
       const rec = records.find(r => r.id === recordId);
       if (!rec) return;
 
@@ -1615,7 +2607,7 @@
 
       showConfirmModal({
         title: '축의 내역 삭제',
-        message: `${sideKorean} 봉투 #${rec.envelopeNum} [${rec.name}] 님의 접수 내역을 정말 삭제하시겠습니까?`,
+        message: `${sideKorean} 봉투 #${rec.envelopeNum} [${rec.name}] 님의 내역을 정말 삭제하시겠습니까?`,
         iconBg: 'bg-rose-100 text-rose-600',
         icon: 'fa-trash-can',
         okText: '삭제하기',
@@ -1625,43 +2617,42 @@
               const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', recordId);
               await deleteDoc(docRef);
             } else {
-              records = records.filter(r => r.id !== recordId);
-              renderApp();
-              updateNextEnvelopeNumber();
+              allRecords = allRecords.filter(r => r.id !== recordId);
+              filterRecordsForActiveWedding();
             }
             showToast('내역이 삭제되었습니다.', 'info');
           } catch (err) {
-            console.error("Delete record error:", err);
             showToast('삭제 실패: ' + err.message, 'warning');
           }
         }
       });
     }
 
-    function confirmResetAllData() {
-      requestPasswordAndExecute('전체 데이터 초기화 승인', () => {
+    function confirmResetCurrentWeddingData() {
+      if (currentUserRole === 'couple') return;
+      if (!activeWedding) return;
+      requestPasswordAndExecute('현재 예식 데이터 초기화 승인', () => {
         showConfirmModal({
-          title: '전체 데이터 초기화',
-          message: '모든 신랑측/신부측 접수 내역이 영구 삭제됩니다. 계속 진행하시겠습니까?',
+          title: '현재 예식 접수 내역 전체 초기화',
+          message: `[${maskName(activeWedding.groomName)} ♥ ${maskName(activeWedding.brideName)}] 예식의 모든 접수 내역이 삭제됩니다. 계속 진행하시겠습니까?`,
           iconBg: 'bg-rose-100 text-rose-600',
           icon: 'fa-triangle-exclamation',
           okText: '전체 초기화',
           onConfirm: async () => {
             try {
               if (isCloudActive && currentUser && db) {
-                const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
-                const snapshot = await getDocs(recordsCol);
                 const batch = writeBatch(db);
-                snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+                records.forEach(r => {
+                  const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', r.id);
+                  batch.delete(docRef);
+                });
                 await batch.commit();
               } else {
-                records = [];
-                renderApp();
-                updateNextEnvelopeNumber();
+                allRecords = allRecords.filter(r => r.weddingId !== activeWedding.id);
+                filterRecordsForActiveWedding();
               }
-              showToast('모든 내역이 초기화되었습니다.', 'warning');
+              showToast('현재 예식의 모든 내역이 초기화되었습니다.', 'warning');
             } catch (err) {
-              console.error("Reset error:", err);
               showToast('초기화 실패: ' + err.message, 'warning');
             }
           }
@@ -1669,61 +2660,103 @@
       });
     }
 
-    function exportToExcel() {
-      if (records.length === 0) {
-        showToast('내보낼 축의금 내역이 없습니다.', 'warning');
+    /**
+     * 엑셀 다운로드:
+     * - 접속한 신랑·신부: 즉시 원클릭으로 다운로드 가능!
+     * - 총괄 관리자: 즉시 다운로드 가능!
+     */
+    function handleExcelDownloadClick() {
+      if (!activeWedding) {
+        showToast('먼저 예식을 선택해 주세요.', 'warning');
         return;
       }
+
+      if (currentUserRole === 'couple' || isMasterAdminSession) {
+        executeExcelExport();
+      } else {
+        requestPasswordAndExecute('엑셀 다운로드 보안 인증', () => {
+          executeExcelExport();
+        });
+      }
+    }
+
+    /**
+     * 엑셀 다운로드 실행 (철저한 합계 정합성 & 안전 마스킹 파일명)
+     */
+    function executeExcelExport() {
+      if (!activeWedding) return;
+
+      if (records.length === 0) {
+        showToast('내보낼 축의금 접수 내역이 없습니다.', 'warning');
+        return;
+      }
+
+      const maskedG = maskName(activeWedding.groomName);
+      const maskedB = maskName(activeWedding.brideName);
+      const maskedV = maskVenue(activeWedding.venue);
+
+      let totalAmount = 0;
+      let totalTickets = 0;
 
       const excelRows = records.map((r) => {
         let sideText = '미구분';
         if (r.side === 'groom') sideText = '신랑측';
         if (r.side === 'bride') sideText = '신부측';
 
+        const amt = Math.round(Number(r.amount) || 0);
+        const tkt = Math.round(Number(r.tickets) || 0);
+        totalAmount += amt;
+        totalTickets += tkt;
+
         return {
           '구분': sideText,
           '봉투번호': `${sideText} #${r.envelopeNum}`,
           '축의자 성함': r.name,
-          '축의 금액(원)': r.amount,
-          '식권 발급(장)': r.tickets,
+          '축의 금액(원)': amt,
+          '식권 발급(장)': tkt,
           '메모 및 관계': r.memo || '',
           '접수 시간': r.timestamp || ''
         };
       });
 
-      const totalAmount = records.reduce((sum, r) => sum + r.amount, 0);
-      const totalTickets = records.reduce((sum, r) => sum + r.tickets, 0);
-
+      // 합계 행 추가 (검증된 정수 총합)
       excelRows.push({
         '구분': '합계',
         '봉투번호': `총 ${records.length}건`,
         '축의자 성함': '-',
         '축의 금액(원)': totalAmount,
         '식권 발급(장)': totalTickets,
-        '메모 및 관계': '메리담 축의대 대행 리포트',
+        '메모 및 관계': `메리담 [${maskedG} ♥ ${maskedB}${maskedV ? ' ' + maskedV : ''}] 스마트 리포트`,
         '접수 시간': ''
       });
 
       const worksheet = XLSX.utils.json_to_sheet(excelRows);
       worksheet['!cols'] = [
-        { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 26 }, { wch: 12 }
+        { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 12 }
       ];
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, '축의대_접수대장');
 
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0];
-      const fileName = `메리담_축의금_접수명부_${dateStr}.xlsx`;
+      const dateStr = activeWedding.date || new Date().toISOString().split('T')[0];
+      const fileName = `메리담_축의금명부_${dateStr}_신랑${maskedG}_신부${maskedB}.xlsx`;
 
       XLSX.writeFile(workbook, fileName);
       showToast('엑셀 파일이 성공적으로 다운로드되었습니다.', 'success');
     }
 
     function renderCharts() {
-      const groomAmount = records.filter(r => r.side === 'groom').reduce((s, r) => s + r.amount, 0);
-      const brideAmount = records.filter(r => r.side === 'bride').reduce((s, r) => s + r.amount, 0);
-      const neutralAmount = records.filter(r => r.side === 'neutral').reduce((s, r) => s + r.amount, 0);
+      let groomAmount = 0;
+      let brideAmount = 0;
+      let neutralAmount = 0;
+
+      for (let i = 0; i < records.length; i++) {
+        const amt = Math.round(Number(records[i].amount) || 0);
+        if (records[i].side === 'groom') groomAmount += amt;
+        else if (records[i].side === 'bride') brideAmount += amt;
+        else neutralAmount += amt;
+      }
+
       const total = groomAmount + brideAmount + neutralAmount;
 
       document.getElementById('statRatioGroom').innerText = total > 0 ? Math.round((groomAmount / total) * 100) + '%' : '0%';
@@ -1749,10 +2782,7 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { font: { family: 'Pretendard', size: 12 }, padding: 16 }
-            },
+            legend: { position: 'bottom', labels: { font: { family: 'Pretendard', size: 12 }, padding: 16 } },
             tooltip: {
               callbacks: {
                 label: function(context) {
@@ -1772,13 +2802,14 @@
       };
 
       records.forEach(r => {
-        if (r.amount === 30000) brackets['3만원']++;
-        else if (r.amount === 50000) brackets['5만원']++;
-        else if (r.amount === 100000) brackets['10만원']++;
-        else if (r.amount === 150000) brackets['15만원']++;
-        else if (r.amount === 200000) brackets['20만원']++;
-        else if (r.amount === 300000) brackets['30만원']++;
-        else if (r.amount === 500000) brackets['50만원']++;
+        const amt = Math.round(Number(r.amount) || 0);
+        if (amt === 30000) brackets['3만원']++;
+        else if (amt === 50000) brackets['5만원']++;
+        else if (amt === 100000) brackets['10만원']++;
+        else if (amt === 150000) brackets['15만원']++;
+        else if (amt === 200000) brackets['20만원']++;
+        else if (amt === 300000) brackets['30만원']++;
+        else if (amt === 500000) brackets['50만원']++;
         else brackets['기타/이상']++;
       });
 
@@ -1807,6 +2838,23 @@
           }
         }
       });
+    }
+
+    function updateCloudSyncStatusBadge(connected, text) {
+      const badge = document.getElementById('cloudStatusBadge');
+      const dot = document.getElementById('cloudStatusDot');
+      const label = document.getElementById('cloudStatusText');
+      if (!badge || !dot || !label) return;
+
+      if (connected) {
+        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+        label.innerText = text || '실시간 연동 중';
+      } else {
+        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        label.innerText = text || '로컬 모드';
+      }
     }
 
     function showToast(message, type = 'info') {
@@ -1854,12 +2902,10 @@
         cleanup();
         if (onConfirm) onConfirm();
       };
-
       const handleCancel = () => {
         modal.classList.add('hidden');
         cleanup();
       };
-
       const cleanup = () => {
         okBtn.removeEventListener('click', handleOk);
         cancelBtn.removeEventListener('click', handleCancel);
@@ -1880,6 +2926,31 @@
         .replace(/'/g, '&#039;');
     }
 
+    // Window Global Exports
+    window.handleWeddingSearch = handleWeddingSearch;
+    window.promptWeddingPassword = promptWeddingPassword;
+    window.closeWeddingAuthModal = closeWeddingAuthModal;
+    window.handleWeddingPasscodeSubmit = handleWeddingPasscodeSubmit;
+    window.confirmExitWeddingSession = confirmExitWeddingSession;
+    window.returnToWeddingPortal = returnToWeddingPortal;
+    
+    window.requestAdminAndOpenNewWedding = requestAdminAndOpenNewWedding;
+    window.openNewWeddingModalDirectly = openNewWeddingModalDirectly;
+    window.closeNewWeddingModal = closeNewWeddingModal;
+    window.generateRandomPasscodeForNewWedding = generateRandomPasscodeForNewWedding;
+    window.handleNewWeddingSubmit = handleNewWeddingSubmit;
+    window.selectQuickWeddingTime = selectQuickWeddingTime;
+    window.updateGroomMaskPreview = updateGroomMaskPreview;
+    window.updateBrideMaskPreview = updateBrideMaskPreview;
+    window.updateVenueMaskPreview = updateVenueMaskPreview;
+
+    window.requestAdminAccess = requestAdminAccess;
+    window.openAdminCenterModal = openAdminCenterModal;
+    window.closeAdminCenterModal = closeAdminCenterModal;
+    window.enterWeddingFromAdmin = enterWeddingFromAdmin;
+    window.confirmDeleteWedding = confirmDeleteWedding;
+    window.copyShareTextToClipboard = copyShareTextToClipboard;
+
     window.switchTab = switchTab;
     window.selectSide = selectSide;
     window.setQuickAmount = setQuickAmount;
@@ -1896,7 +2967,7 @@
     window.setListFilter = setListFilter;
     window.handleSearch = handleSearch;
     window.clearSearch = clearSearch;
-    window.exportToExcel = exportToExcel;
+    window.handleExcelDownloadClick = handleExcelDownloadClick;
     window.closeEditModal = closeEditModal;
     window.handleEditSubmit = handleEditSubmit;
     window.closePasswordModal = closePasswordModal;
@@ -1904,9 +2975,8 @@
     window.requestPasswordAndExecute = requestPasswordAndExecute;
     window.openEditModal = openEditModal;
     window.confirmDeleteRecord = confirmDeleteRecord;
-    window.confirmResetAllData = confirmResetAllData;
+    window.confirmResetCurrentWeddingData = confirmResetCurrentWeddingData;
 
-    // Start application on page load
     window.addEventListener('DOMContentLoaded', initializeSystem);
   </script>
 </body>
