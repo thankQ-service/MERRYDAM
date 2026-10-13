@@ -155,7 +155,7 @@
       </div>
       <div>
         <h3 id="authModalWeddingTitle" class="text-base sm:text-lg font-bold text-stone-900 leading-snug">
-          26년 10월 13일 전OO 신랑 김OO 신부 3시 예식
+          26년 10월 13일 전OO 신랑 최OO 신부 3시 예식
         </h3>
         <p class="text-xs text-stone-500 mt-1">부여받으신 본 예식 전용 접속 비밀번호를 입력해 주세요.</p>
       </div>
@@ -263,9 +263,9 @@
               <label class="block text-xs font-bold text-stone-700">
                 신부 성함 <span class="text-rose-500">*</span>
               </label>
-              <span id="brideMaskPreview" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">김OO</span>
+              <span id="brideMaskPreview" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">최OO</span>
             </div>
-            <input type="text" id="newWeddingBride" required placeholder="예: 김민지" oninput="updateBrideMaskPreview(this.value)"
+            <input type="text" id="newWeddingBride" required placeholder="예: 최윤정" oninput="updateBrideMaskPreview(this.value)"
               class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
           </div>
         </div>
@@ -1395,7 +1395,7 @@
         date: '2026-10-13',
         time: '15:00 (3시)',
         groomName: '전형민',
-        brideName: '김민지',
+        brideName: '최윤정',
         venue: '메리담 웨딩홀 1층 그랜드볼룸',
         password: '1234',
         createdAt: Date.now()
@@ -1418,7 +1418,7 @@
           date: '2026-10-13',
           time: '15:00 (3시)',
           groomName: '전형민',
-          brideName: '김민지',
+          brideName: '최윤정',
           venue: '메리담 웨딩홀 1층 그랜드볼룸',
           password: '1234',
           createdAt: Date.now()
@@ -1716,7 +1716,7 @@
       document.getElementById('newWeddingGroom').value = '';
       document.getElementById('newWeddingBride').value = '';
       document.getElementById('groomMaskPreview').innerText = '전OO';
-      document.getElementById('brideMaskPreview').innerText = '김OO';
+      document.getElementById('brideMaskPreview').innerText = '최OO';
       document.getElementById('newWeddingVenue').value = '';
       document.getElementById('venueMaskPreview').innerText = '메OO 웨딩홀 1층 그랜드볼룸';
 
@@ -1758,7 +1758,7 @@
 
     function updateBrideMaskPreview(val) {
       const preview = document.getElementById('brideMaskPreview');
-      preview.innerText = maskName(val) || '김OO';
+      preview.innerText = maskName(val) || '최OO';
     }
 
     function updateVenueMaskPreview(val) {
