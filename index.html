@@ -88,111 +88,70 @@
 <body class="min-h-screen flex flex-col bg-[#FBF9F5] antialiased selection:bg-amber-200 selection:text-amber-900 pb-16">
 
   <!-- ============================================================== -->
-  <!-- 0. 메리담 예식 포털 게이트 (예식 리스트 선택 & 개인정보 마스킹)      -->
+  <!-- 0. 메리담 예식 포털 게이트 (사생활 보호: 프라이빗 전용 비밀번호 입장 게이트) -->
   <!-- ============================================================== -->
-  <div id="gateLockScreen" class="fixed inset-0 z-50 bg-[#FAF6F0] flex flex-col items-center justify-start p-4 sm:p-6 overflow-y-auto">
-    <div class="max-w-2xl w-full my-auto py-6 space-y-6">
-      
-      <!-- Brand Header -->
-      <div class="flex flex-col items-center text-center space-y-2">
-        <div class="w-16 h-16 rounded-2xl bg-white border border-[#E8DAC7] shadow-sm flex items-center justify-center p-2">
-          <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/64x64/FAF6F0/C5A059?text=MD';">
+  <div id="gateLockScreen" class="fixed inset-0 z-50 bg-[#FAF6F0] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#EADBCA] shadow-elevated text-center space-y-6 relative overflow-hidden my-auto">
+      <!-- Subtle Gold Accent Header Line -->
+      <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#DFCBB2] via-[#C5A059] to-[#DFCBB2]"></div>
+
+      <!-- Brand Icon & Titles -->
+      <div class="space-y-2 pt-2">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto bg-white border border-[#EBDCCB] shadow-sm flex items-center justify-center p-2">
+          <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/80x80/FAF6F0/C5A059?text=MD';">
         </div>
-        <h1 class="wedding-title text-2xl sm:text-3xl font-bold tracking-tight text-[#3A2E25]">메리담</h1>
-        <p class="text-xs sm:text-sm text-stone-600 font-medium">프리미엄 축의대 대행 전문 · 스마트 통합 접수 포털</p>
+        <div>
+          <div class="flex items-center justify-center space-x-2">
+            <h1 class="wedding-title text-2xl sm:text-3xl font-bold tracking-tight text-[#3A2E25]">메리담</h1>
+            <span class="px-2 py-0.5 text-[11px] font-extrabold bg-[#FAF0E2] text-amber-900 border border-amber-200 rounded-full">MerryDam</span>
+          </div>
+          <p class="text-xs text-stone-500 font-medium mt-1">프리미엄 축의대 대행 전문 · 스마트 통합 접수 포털</p>
+        </div>
       </div>
 
-      <!-- Action & Search Bar for Weddings -->
-      <div class="bg-white rounded-3xl p-5 sm:p-6 border border-[#EBDCCB] shadow-elevated space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
-          <div>
-            <h2 class="text-base sm:text-lg font-bold text-stone-900 flex items-center space-x-2">
-              <i class="fa-solid fa-calendar-days text-[#C5A059]"></i>
-              <span>예식 일정 선택</span>
-            </h2>
-            <p class="text-xs text-stone-500 mt-0.5">접수할 예식을 선택하고 부여받은 전용 비밀번호를 입력해 주세요.</p>
+      <!-- Password Entrance Form Box -->
+      <div class="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200/80 space-y-3.5">
+        <div class="flex items-center justify-center space-x-1.5 text-xs font-bold text-stone-700">
+          <i class="fa-solid fa-lock text-amber-700 text-xs"></i>
+          <span>예식 전용 접속 비밀번호</span>
+        </div>
+
+        <form onsubmit="handleGateDirectPassSubmit(event)" class="space-y-3">
+          <div class="relative">
+            <input type="password" id="gateDirectPassInput" maxlength="20" required autocomplete="off"
+              placeholder="비밀번호 입력"
+              class="w-full text-center text-2xl font-black tracking-widest py-3.5 px-4 bg-white border-2 border-stone-300 rounded-2xl focus:outline-none focus:border-[#C5A059] focus:ring-4 focus:ring-amber-100 transition-all text-stone-900 placeholder:text-stone-300 placeholder:tracking-normal placeholder:text-sm font-mono">
           </div>
-          <!-- 새 예식 등록 버튼 (비밀번호 없이 즉시 등록 창 진입) -->
-          <button type="button" onclick="openNewWeddingModalDirectly()"
-            class="btn-tactile self-start sm:self-auto px-4 py-2.5 rounded-xl bg-[#3A2E25] hover:bg-[#251D17] text-white text-xs sm:text-sm font-bold flex items-center space-x-1.5 shadow-sm transition-all">
-            <i class="fa-solid fa-plus text-[11px]"></i>
-            <span>새 예식 등록</span>
+
+          <p id="gateDirectPassErrorMsg" class="hidden text-xs text-rose-600 font-semibold flex items-center justify-center space-x-1">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>일치하는 예식 정보가 없습니다. 비밀번호를 다시 확인해 주세요.</span>
+          </p>
+
+          <button type="submit" class="btn-tactile w-full py-4 rounded-2xl bg-gradient-to-r from-[#D4A359] via-[#C5A059] to-[#AD833E] hover:from-[#B88C43] hover:to-[#966E2E] text-white font-extrabold text-base sm:text-lg shadow-md shadow-amber-900/15 transition-all flex items-center justify-center space-x-2 border border-amber-300/40">
+            <i class="fa-solid fa-right-to-bracket text-sm"></i>
+            <span>접수대 입장하기</span>
           </button>
-        </div>
+        </form>
 
-        <!-- Search Input -->
-        <div class="relative">
-          <input type="text" id="weddingSearchInput" oninput="handleWeddingSearch(this.value)"
-            placeholder="신랑·신부 성함, 웨딩홀 또는 날짜 검색 (예: 전OO, 메OO, 10월 13일)"
-            class="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs sm:text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:bg-white focus:border-[#C5A059] focus:ring-2 focus:ring-amber-100 transition-all">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-stone-400 text-xs"></i>
-        </div>
-
-        <!-- Wedding List Container (최근 예식순 정렬 & 마스킹) -->
-        <div class="space-y-3 pt-1" id="weddingListContainer">
-          <!-- Dynamic Wedding Cards inserted here -->
-        </div>
-
-        <!-- Empty State -->
-        <div id="weddingListEmpty" class="hidden py-12 text-center text-stone-400 space-y-2">
-          <div class="w-12 h-12 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-300 text-xl">
-            <i class="fa-regular fa-calendar-xmark"></i>
-          </div>
-          <p class="text-sm font-bold text-stone-600">등록된 예식이 없습니다.</p>
-          <p class="text-xs text-stone-400">상단의 [새 예식 등록] 버튼을 눌러 첫 예식을 개설해 보세요.</p>
-        </div>
+        <p class="text-[11px] text-stone-500 leading-relaxed">
+          신랑·신부님 또는 현장 담당자에게 부여된<br> 전용 비밀번호를 입력하시면 즉시 안전하게 입장합니다.
+        </p>
       </div>
 
-      <!-- Portal Footer Notice -->
-      <div class="flex items-center justify-between text-xs text-stone-400 px-2">
-        <span class="flex items-center space-x-1">
-          <i class="fa-solid fa-shield-halved text-stone-400"></i>
-          <span>메리담 개인정보 안심 마스킹 적용 중</span>
-        </span>
-        <button onclick="requestAdminAccess()" class="hover:text-stone-700 hover:underline">
-          총괄 관리자 센터
+      <!-- Bottom Sub-Actions (New Wedding & Admin) -->
+      <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <button type="button" onclick="openNewWeddingModalDirectly()"
+          class="btn-tactile w-full sm:w-auto px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-700 font-bold border border-stone-200 flex items-center justify-center space-x-1.5 shadow-2xs">
+          <i class="fa-solid fa-plus text-[10px] text-amber-700"></i>
+          <span>새 예식 등록하기</span>
+        </button>
+
+        <button onclick="requestAdminAccess()" class="btn-tactile text-[11px] text-stone-500 hover:text-stone-800 hover:underline flex items-center space-x-1 py-1 px-2 rounded-lg">
+          <i class="fa-solid fa-shield-halved text-[10px] text-stone-400"></i>
+          <span>총괄 관리자 센터</span>
         </button>
       </div>
-
-    </div>
-  </div>
-
-  <!-- ============================================================== -->
-  <!-- 0-1. 예식 입장 비밀번호 입력 모달                                -->
-  <!-- ============================================================== -->
-  <div id="weddingAuthModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated text-center space-y-5">
-      <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl bg-amber-50 text-amber-800 border border-amber-200">
-        <i class="fa-solid fa-lock"></i>
-      </div>
-      <div>
-        <h3 id="authModalWeddingTitle" class="text-base sm:text-lg font-bold text-stone-900 leading-snug">
-          26년 10월 13일 전OO 신랑 최OO 신부 3시 예식
-        </h3>
-        <p class="text-xs text-stone-500 mt-1">부여받으신 본 예식 전용 접속 비밀번호를 입력해 주세요.</p>
-      </div>
-
-      <form onsubmit="handleWeddingPasscodeSubmit(event)" class="space-y-4">
-        <div class="relative">
-          <input type="password" id="weddingAuthPassInput" maxlength="20" required autocomplete="off"
-            placeholder="비밀번호 입력"
-            class="w-full text-center text-xl font-bold tracking-widest py-3 px-4 bg-stone-50 border-2 border-stone-200 rounded-2xl focus:outline-none focus:border-[#C5A059] focus:bg-white focus:ring-4 focus:ring-amber-100 transition-all text-stone-900 placeholder:text-stone-400 placeholder:tracking-normal placeholder:text-sm font-mono">
-        </div>
-
-        <p id="weddingAuthErrorMsg" class="hidden text-xs text-rose-600 font-semibold flex items-center justify-center space-x-1">
-          <i class="fa-solid fa-circle-exclamation"></i>
-          <span>비밀번호가 일치하지 않습니다.</span>
-        </p>
-
-        <div class="flex space-x-2 pt-1">
-          <button type="button" onclick="closeWeddingAuthModal()" class="flex-1 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm">
-            취소
-          </button>
-          <button type="submit" class="flex-1 py-3 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white font-bold text-sm shadow-md">
-            입장하기
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
@@ -1426,9 +1385,6 @@
     let currentTab = 'home';
     let currentFilter = 'all';
     let searchQuery = '';
-    let weddingSearchQuery = '';
-    let selectedWeddingForAuth = null;
-
     let sideRatioChartInstance = null;
     let amountDistChartInstance = null;
     let adminSelectedWeddingId = null; // 관리자 센터에서 선택된 예식 ID
@@ -1512,15 +1468,20 @@
         });
       }
 
-      // 2. 초기 데이터 로컬 우선 시딩 & 즉시 렌더링 (화면이 비거나 오류 나는 현상 원천 방지)
+      // 2. 초기 데이터 로컬 우선 시딩 & 즉시 렌더링
       seedSampleWeddingsIfEmpty();
       seedSampleRecordsIfEmpty();
       sortWeddingsByRecent();
-      renderWeddingPortalList();
       renderAdminWeddingsList();
       checkRestorableSession();
 
-      // 3. 백그라운드 클라우드 연결 시도 (실패해도 로컬 모드로 완벽 작동)
+      // 메인 게이트 비밀번호 입력창에 즉시 포커스
+      setTimeout(() => {
+        const gateInput = document.getElementById('gateDirectPassInput');
+        if (gateInput) gateInput.focus();
+      }, 200);
+
+      // 3. 백그라운드 클라우드 연결 시도
       try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
@@ -1552,7 +1513,6 @@
       updateCloudSyncStatusBadge(false, '현장 로컬 모드');
       seedSampleWeddingsIfEmpty();
       sortWeddingsByRecent();
-      renderWeddingPortalList();
       renderAdminWeddingsList();
     }
 
@@ -1575,13 +1535,10 @@
           if (synced.length > 0) {
             weddings = synced;
             sortWeddingsByRecent();
-            renderWeddingPortalList();
             renderAdminWeddingsList();
             checkRestorableSession();
           } else {
-            // 원격 저장소가 비어있으면 초기 기본 예식 유지
             seedSampleWeddingsIfEmpty();
-            renderWeddingPortalList();
             renderAdminWeddingsList();
           }
         }, (err) => {
@@ -1727,130 +1684,51 @@
       }
     }
 
-    function renderWeddingPortalList() {
-      const container = document.getElementById('weddingListContainer');
-      const emptyState = document.getElementById('weddingListEmpty');
-      if (!container) return;
-
-      const filtered = weddings.filter(w => {
-        if (!weddingSearchQuery) return true;
-        const q = weddingSearchQuery.toLowerCase();
-        const maskedG = maskName(w.groomName).toLowerCase();
-        const maskedB = maskName(w.brideName).toLowerCase();
-        const rawG = (w.groomName || '').toLowerCase();
-        const rawB = (w.brideName || '').toLowerCase();
-        const maskedV = maskVenue(w.venue).toLowerCase();
-        const rawV = (w.venue || '').toLowerCase();
-        const fullTitle = `${w.date} ${rawG} ${rawB} ${maskedG} ${maskedB} ${w.time} ${maskedV} ${rawV}`.toLowerCase();
-        return fullTitle.includes(q);
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '';
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
-      }
-
-      if (emptyState) emptyState.classList.add('hidden');
-
-      container.innerHTML = filtered.map(w => {
-        const parts = w.date ? w.date.split('-') : [];
-        const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}년 ${parts[1]}월 ${parts[2]}일` : w.date;
-        const groomMasked = maskName(w.groomName);
-        const brideMasked = maskName(w.brideName);
-        const venueMasked = maskVenue(w.venue);
-
-        return `
-          <div onclick="promptWeddingPassword('${w.id}')"
-            class="group cursor-pointer p-4 sm:p-5 rounded-2xl bg-stone-50/90 hover:bg-white border border-stone-200 hover:border-[#C5A059] shadow-xs hover:shadow-card transition-all duration-200 flex items-center justify-between">
-            <div class="space-y-1.5 flex-1 pr-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200 font-mono">
-                  <i class="fa-regular fa-clock mr-1 text-[10px]"></i>
-                  ${dateDisplay} ${w.time}
-                </span>
-                ${venueMasked ? `<span class="text-[11px] text-stone-500 font-medium truncate max-w-[200px]"><i class="fa-solid fa-location-dot text-amber-600 mr-1 text-[10px]"></i>${escapeHtml(venueMasked)}</span>` : ''}
-              </div>
-              <div class="text-base sm:text-lg font-bold text-stone-900 group-hover:text-amber-900 transition-colors flex items-center space-x-2">
-                <span>신랑 ${escapeHtml(groomMasked)}</span>
-                <span class="text-rose-400 font-normal">♥</span>
-                <span>신부 ${escapeHtml(brideMasked)}</span>
-                <span class="text-xs text-stone-500 font-normal">예식</span>
-              </div>
-            </div>
-
-            <div class="flex items-center space-x-2 text-stone-400 group-hover:text-[#C5A059] transition-colors">
-              <span class="text-xs font-bold hidden sm:inline">접수대 입장</span>
-              <div class="w-9 h-9 rounded-xl bg-white group-hover:bg-amber-500 group-hover:text-white border border-stone-200 group-hover:border-amber-600 flex items-center justify-center transition-all shadow-xs">
-                <i class="fa-solid fa-arrow-right text-xs"></i>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function handleWeddingSearch(val) {
-      weddingSearchQuery = val.trim();
-      renderWeddingPortalList();
-    }
-
-    function promptWeddingPassword(weddingId) {
-      const target = weddings.find(w => w.id === weddingId);
-      if (!target) return;
-
-      selectedWeddingForAuth = target;
-      const modal = document.getElementById('weddingAuthModal');
-      const titleEl = document.getElementById('authModalWeddingTitle');
-      const inputEl = document.getElementById('weddingAuthPassInput');
-      const errEl = document.getElementById('weddingAuthErrorMsg');
-
-      const parts = target.date ? target.date.split('-') : [];
-      const dateDisplay = parts.length === 3 ? `${parts[0].slice(-2)}년 ${parts[1]}월 ${parts[2]}일` : target.date;
-      const groomMasked = maskName(target.groomName);
-      const brideMasked = maskName(target.brideName);
-      titleEl.innerText = `${dateDisplay} ${groomMasked} 신랑 ${brideMasked} 신부 ${target.time} 예식`;
-
-      inputEl.value = '';
-      errEl.classList.add('hidden');
-      modal.classList.remove('hidden');
-
-      setTimeout(() => inputEl.focus(), 80);
-    }
-
-    function closeWeddingAuthModal() {
-      document.getElementById('weddingAuthModal').classList.add('hidden');
-      selectedWeddingForAuth = null;
-    }
-
-    function handleWeddingPasscodeSubmit(e) {
+    /**
+     * 메인 첫 화면 직접 비밀번호 입력 핸들러 (사생활 보호: 리스트 일체 노출 없음)
+     */
+    function handleGateDirectPassSubmit(e) {
       e.preventDefault();
-      if (!selectedWeddingForAuth) return;
+      const inputEl = document.getElementById('gateDirectPassInput');
+      const errEl = document.getElementById('gateDirectPassErrorMsg');
+      if (!inputEl) return;
 
-      const target = selectedWeddingForAuth;
-      const inputEl = document.getElementById('weddingAuthPassInput');
       const entered = inputEl.value.trim();
-      const errEl = document.getElementById('weddingAuthErrorMsg');
+      if (!entered) return;
 
+      // 1. 총괄 관리자 마스터 번호인 경우 -> 총괄 관리자 센터 즉시 오픈
       if (entered === ADMIN_PASSWORD) {
-        // 총괄 관리자 / 메리담 현장 요원 비밀번호
         isMasterAdminSession = true;
         currentUserRole = 'admin';
         sessionStorage.setItem('merrydam_user_role', 'admin');
-        closeWeddingAuthModal();
-        enterWedding(target);
-        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 현장 접수대(관리자 모드)로 입장했습니다.`, 'success');
-      } else if (entered === target.password) {
-        // 부여받은 신랑·신부 전용 비밀번호
+        inputEl.value = '';
+        if (errEl) errEl.classList.add('hidden');
+        openAdminCenterModal();
+        showToast('총괄 관리자 센터로 인증되었습니다.', 'success');
+        return;
+      }
+
+      // 2. 등록된 예식 목록 중 해당 비밀번호를 가진 예식 검색
+      const matchedWedding = weddings.find(w => String(w.password).trim() === entered);
+
+      if (matchedWedding) {
+        // 일치하는 예식 발견 -> 신랑·신부 전용 열람 모드로 즉시 입장
         isMasterAdminSession = false;
         currentUserRole = 'couple';
         sessionStorage.setItem('merrydam_user_role', 'couple');
-        closeWeddingAuthModal();
-        enterWedding(target);
-        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 신랑·신부 실시간 열람 모드로 입장했습니다.`, 'success');
+        
+        inputEl.value = '';
+        if (errEl) errEl.classList.add('hidden');
+
+        enterWedding(matchedWedding);
+        const maskedG = maskName(matchedWedding.groomName);
+        const maskedB = maskName(matchedWedding.brideName);
+        showToast(`[신랑 ${maskedG} ♥ 신부 ${maskedB}] 예식에 안전하게 입장했습니다.`, 'success');
       } else {
-        errEl.classList.remove('hidden');
+        // 일치하는 예식 없음
+        if (errEl) errEl.classList.remove('hidden');
         inputEl.select();
+        inputEl.focus();
       }
     }
 
@@ -1957,7 +1835,14 @@
 
       const gate = document.getElementById('gateLockScreen');
       if (gate) gate.classList.remove('hidden');
-      renderWeddingPortalList();
+
+      const inputEl = document.getElementById('gateDirectPassInput');
+      const errEl = document.getElementById('gateDirectPassErrorMsg');
+      if (inputEl) {
+        inputEl.value = '';
+        setTimeout(() => inputEl.focus(), 150);
+      }
+      if (errEl) errEl.classList.add('hidden');
     }
 
     function checkRestorableSession() {
@@ -2083,10 +1968,9 @@
         createdAt: Date.now()
       };
 
-      // 1. 메모리 데이터에 즉시 등록 & UI 업데이트 (네트워크 지연/권한 에러에 절대 막히지 않음)
+      // 1. 메모리 데이터에 즉시 등록 & 정렬
       weddings.unshift(newWeddingObj);
       sortWeddingsByRecent();
-      renderWeddingPortalList();
       renderAdminWeddingsList();
 
       closeNewWeddingModal();
@@ -2218,7 +2102,6 @@
             adminSelectedWeddingId = weddings.length > 0 ? weddings[0].id : null;
           }
 
-          renderWeddingPortalList();
           renderAdminWeddingsList();
           updateAdminSharePreview(adminSelectedWeddingId);
 
@@ -3583,10 +3466,7 @@
         .replace(/'/g, '&#039;');
     }
 
-    window.handleWeddingSearch = handleWeddingSearch;
-    window.promptWeddingPassword = promptWeddingPassword;
-    window.closeWeddingAuthModal = closeWeddingAuthModal;
-    window.handleWeddingPasscodeSubmit = handleWeddingPasscodeSubmit;
+    window.handleGateDirectPassSubmit = handleGateDirectPassSubmit;
     window.confirmExitWeddingSession = confirmExitWeddingSession;
     window.returnToWeddingPortal = returnToWeddingPortal;
     
