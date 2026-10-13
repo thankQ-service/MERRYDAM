@@ -1189,7 +1189,14 @@
 
         <!-- Current Wedding Share Link Box (if one is active) -->
         <div id="adminShareBox" class="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 space-y-2">
-          <label class="block text-xs font-bold text-amber-900">선택된 예식 신랑·신부 공유 문구</label>
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-amber-900">
+              선택된 예식 신랑·신부 공유 문구
+            </label>
+            <span id="adminShareTargetBadge" class="text-[11px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md">
+              예식을 선택해 주세요
+            </span>
+          </div>
           <div class="flex items-center space-x-2">
             <textarea id="adminSharePreview" readonly rows="3"
               class="flex-1 p-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-600 font-sans resize-none outline-none"></textarea>
@@ -1405,6 +1412,7 @@
 
     let sideRatioChartInstance = null;
     let amountDistChartInstance = null;
+    let adminSelectedWeddingId = null; // 관리자 센터에서 선택된 예식 ID
 
     /**
      * 한국식 성명 자동 마스킹 헬퍼 함수
@@ -2092,8 +2100,10 @@
     }
 
     function openAdminCenterModal() {
+      // 현재 활성화된 예식이 있으면 해당 예식을 기본 선택, 없으면 첫 번째 예식 선택
+      adminSelectedWeddingId = activeWedding?.id || (weddings.length > 0 ? weddings[0].id : null);
       renderAdminWeddingsList();
-      updateAdminSharePreview();
+      updateAdminSharePreview(adminSelectedWeddingId);
       const modal = document.getElementById('adminCenterModal');
       if (modal) modal.classList.remove('hidden');
     }
@@ -2101,6 +2111,17 @@
     function closeAdminCenterModal() {
       const modal = document.getElementById('adminCenterModal');
       if (modal) modal.classList.add('hidden');
+    }
+
+    function selectWeddingForShare(wId) {
+      adminSelectedWeddingId = wId;
+      renderAdminWeddingsList();
+      updateAdminSharePreview(wId);
+
+      const target = weddings.find(w => w.id === wId);
+      if (target) {
+        showToast(`[${maskName(target.groomName)} ♥ ${maskName(target.brideName)}] 예식의 공유 문구가 반영되었습니다.`, 'info');
+      }
     }
 
     function renderAdminWeddingsList() {
@@ -2116,18 +2137,28 @@
         const maskedG = maskName(w.groomName);
         const maskedB = maskName(w.brideName);
         const maskedV = maskVenue(w.venue);
+        const isSelected = w.id === adminSelectedWeddingId;
+
+        // 선택된 항목은 골드 하이라이트 테두리와 배경으로 시각적 피드백 제공
+        const cardStyle = isSelected
+          ? 'p-3 rounded-xl bg-amber-50/90 border-2 border-amber-400 shadow-xs ring-2 ring-amber-200/60 cursor-pointer transition-all'
+          : 'p-3 rounded-xl bg-stone-50 hover:bg-stone-100/80 border border-stone-200 cursor-pointer transition-all';
+
         return `
-          <div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-stone-900">${w.date} ${w.time} [${escapeHtml(maskedG)} ♥ ${escapeHtml(maskedB)}]</div>
-              ${maskedV ? `<div class="text-[11px] text-stone-500">${escapeHtml(maskedV)}</div>` : ''}
+          <div onclick="selectWeddingForShare('${w.id}')" class="${cardStyle} flex items-center justify-between text-xs group">
+            <div class="pr-2">
+              <div class="flex items-center space-x-1.5">
+                ${isSelected ? '<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500 text-white">선택중</span>' : ''}
+                <div class="font-bold text-stone-900 group-hover:text-amber-900">${w.date} ${w.time} [${escapeHtml(maskedG)} ♥ ${escapeHtml(maskedB)}]</div>
+              </div>
+              ${maskedV ? `<div class="text-[11px] text-stone-500 mt-0.5">${escapeHtml(maskedV)}</div>` : ''}
               <div class="text-stone-500 font-mono text-[11px] mt-0.5">신랑·신부 접속 비밀번호: <strong class="text-amber-900 font-bold">${w.password}</strong></div>
             </div>
-            <div class="flex items-center space-x-1.5">
-              <button onclick="enterWeddingFromAdmin('${w.id}')" class="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold rounded-lg text-[11px]">
-                관리자 입장
+            <div class="flex items-center space-x-1.5 flex-shrink-0">
+              <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}')" class="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold rounded-lg text-[11px] transition-colors" title="이 예식 접수대로 바로 이동">
+                입장
               </button>
-              <button onclick="confirmDeleteWedding('${w.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px]">
+              <button type="button" onclick="event.stopPropagation(); confirmDeleteWedding('${w.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px] transition-colors" title="예식 삭제">
                 삭제
               </button>
             </div>
@@ -2163,8 +2194,14 @@
         onConfirm: async () => {
           weddings = weddings.filter(w => w.id !== wId);
           allRecords = allRecords.filter(r => r.weddingId !== wId);
+
+          if (adminSelectedWeddingId === wId) {
+            adminSelectedWeddingId = weddings.length > 0 ? weddings[0].id : null;
+          }
+
           renderWeddingPortalList();
           renderAdminWeddingsList();
+          updateAdminSharePreview(adminSelectedWeddingId);
 
           if (activeWedding && activeWedding.id === wId) {
             returnToWeddingPortal();
@@ -2183,13 +2220,21 @@
       });
     }
 
-    function updateAdminSharePreview() {
-      const target = activeWedding || weddings[0];
+    function updateAdminSharePreview(targetId = null) {
       const previewEl = document.getElementById('adminSharePreview');
+      const badgeEl = document.getElementById('adminShareTargetBadge');
       if (!previewEl) return;
+
+      // 지정된 ID가 있거나, 관리자 선택 ID가 있거나, 활성 예식 또는 첫 번째 예식을 대상으로 선정
+      const effectiveId = targetId || adminSelectedWeddingId || activeWedding?.id;
+      let target = weddings.find(w => w.id === effectiveId);
+      if (!target && weddings.length > 0) {
+        target = weddings[0];
+      }
 
       if (!target) {
         previewEl.value = '등록된 예식이 없습니다.';
+        if (badgeEl) badgeEl.innerText = '예식 없음';
         return;
       }
 
@@ -2197,6 +2242,11 @@
       const maskedB = maskName(target.brideName);
       const maskedV = maskVenue(target.venue);
       const currentUrl = window.location.href.split('#')[0];
+
+      if (badgeEl) {
+        badgeEl.innerText = `${target.date} [${maskedG} ♥ ${maskedB}]`;
+      }
+
       const text = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${currentUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 위 비밀번호로 접속 시 장부 실시간 모니터링 및 엑셀 다운로드가 가능합니다.`;
       previewEl.value = text;
     }
@@ -2208,7 +2258,7 @@
       textarea.setSelectionRange(0, 99999);
       try {
         document.execCommand('copy');
-        showToast('신랑·신부 공유 안내 문구가 복사되었습니다.', 'success');
+        showToast('신랑·신부 공유 안내 문구가 클립보드에 복사되었습니다.', 'success');
       } catch (err) {
         showToast('복사에 실패했습니다. 문구를 직접 복사해 주세요.', 'warning');
       }
@@ -3533,8 +3583,10 @@
     window.requestAdminAccess = requestAdminAccess;
     window.openAdminCenterModal = openAdminCenterModal;
     window.closeAdminCenterModal = closeAdminCenterModal;
+    window.selectWeddingForShare = selectWeddingForShare;
     window.enterWeddingFromAdmin = enterWeddingFromAdmin;
     window.confirmDeleteWedding = confirmDeleteWedding;
+    window.updateAdminSharePreview = updateAdminSharePreview;
     window.copyShareTextToClipboard = copyShareTextToClipboard;
 
     window.switchTab = switchTab;
