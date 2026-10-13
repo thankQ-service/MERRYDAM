@@ -157,6 +157,13 @@
             </div>
           </div>
 
+          <!-- Cloud Real-time Sync Status Badge -->
+          <div id="cloudStatusBadge" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors">
+            <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="cloudStatusText" class="hidden sm:inline">실시간 연동 연결 중</span>
+            <span class="sm:hidden">실시간</span>
+          </div>
+
           <!-- Quick Excel Button in Header -->
           <button onclick="exportToExcel()" class="btn-tactile inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#2E7D32] hover:bg-[#256629] text-white shadow-sm shadow-green-900/15 transition-all">
             <i class="fa-solid fa-file-excel text-sm"></i>
@@ -846,26 +853,46 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
-  <script>
-    /* ==============================================================
-       1. Application State & Storage & Security Constants
-       ============================================================== */
-    
-    // Admin Security Passcode
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      getDocs, 
+      writeBatch 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'merrydam-wedding-desk';
     const ADMIN_PASSWORD = "77985590";
     let pendingAuthCallback = null;
 
-    // Initial sample wedding data with INDEPENDENT numbering per side
-    // Groom envelopes: 1, 2, 3... / Bride envelopes: 1, 2, 3... / Neutral: 1...
-    const INITIAL_SAMPLE_DATA = [
-      { id: 'm1', envelopeNum: 1, side: 'groom', name: '김태호', amount: 100000, tickets: 1, memo: '초등학교 동창', timestamp: '11:15' },
-      { id: 'm2', envelopeNum: 2, side: 'groom', name: '이진우', amount: 150000, tickets: 2, memo: '직장 동료', timestamp: '11:18' },
-      { id: 'm3', envelopeNum: 1, side: 'bride', name: '박수진', amount: 200000, tickets: 2, memo: '대학교 룸메이트', timestamp: '11:22' },
-      { id: 'm4', envelopeNum: 2, side: 'bride', name: '최유나', amount: 100000, tickets: 1, memo: '사촌 언니', timestamp: '11:27' },
-      { id: 'm5', envelopeNum: 3, side: 'groom', name: '정동원', amount: 50000, tickets: 1, memo: '조기축구회', timestamp: '11:30' },
-      { id: 'm6', envelopeNum: 3, side: 'bride', name: '강혜림', amount: 300000, tickets: 2, memo: '베스트 프렌드', timestamp: '11:34' },
-      { id: 'm7', envelopeNum: 1, side: 'neutral', name: '오세훈', amount: 100000, tickets: 1, memo: '부모님 지인', timestamp: '11:40' }
-    ];
+    // Firebase Configuration
+    const firebaseConfig = typeof __firebase_config !== 'undefined'
+      ? JSON.parse(__firebase_config)
+      : {
+          apiKey: "DEMO_KEY",
+          authDomain: "merrydam-wedding.firebaseapp.com",
+          projectId: "merrydam-wedding",
+          storageBucket: "merrydam-wedding.appspot.com",
+          messagingSenderId: "1234567890",
+          appId: "1:1234567890:web:abcdef123456"
+        };
+
+    let app = null;
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let isCloudActive = false;
+    let unsubscribeRealtime = null;
 
     let records = [];
     let currentTab = 'home';
@@ -874,11 +901,7 @@
     let sideRatioChartInstance = null;
     let amountDistChartInstance = null;
 
-    /* ==============================================================
-       Security Guard: Block F12, DevTools shortcuts, and Right Click
-       ============================================================== */
     window.addEventListener('keydown', (e) => {
-      // 1. Prevent F12
       if (e.key === 'F12' || e.keyCode === 123) {
         e.preventDefault();
         e.stopPropagation();
@@ -886,7 +909,6 @@
         return false;
       }
 
-      // 2. Prevent Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) {
         e.preventDefault();
         e.stopPropagation();
@@ -894,7 +916,6 @@
         return false;
       }
 
-      // 3. Prevent Ctrl+U / Cmd+U (View Page Source)
       if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
         e.stopPropagation();
@@ -903,31 +924,99 @@
       }
     });
 
-    // Disable Right-Click context menu to prevent Inspect Element
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       showToast('마우스 우클릭이 제한되어 있습니다.', 'info');
       return false;
     });
 
-    window.addEventListener('DOMContentLoaded', () => {
-      records = [...INITIAL_SAMPLE_DATA];
+    async function initializeSystem() {
       selectSide('groom');
       setQuickAmount(100000);
-      renderApp();
       updateNextEnvelopeNumber();
 
-      // Enter key handler on password modal input
       document.getElementById('authPasswordInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          submitPasswordModal();
-        }
+        if (e.key === 'Enter') submitPasswordModal();
       });
-    });
 
-    /* ==============================================================
-       2. Navigation & Tab Switching
-       ============================================================== */
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // Authenticate before Firestore queries (Rule 3)
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        currentUser = auth.currentUser;
+        if (currentUser) {
+          isCloudActive = true;
+          updateCloudSyncStatusBadge(true, '실시간 동기화 완료');
+          attachRealtimeSnapshot();
+        } else {
+          updateCloudSyncStatusBadge(false, '단독 로컬 모드');
+          renderApp();
+        }
+      } catch (err) {
+        console.warn("Cloud connection status notice:", err);
+        isCloudActive = false;
+        updateCloudSyncStatusBadge(false, '단독 오프라인 모드');
+        renderApp();
+      }
+    }
+
+    function attachRealtimeSnapshot() {
+      if (!db || !currentUser) return;
+
+      // Public shared collection path (Rule 1)
+      const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+
+      if (unsubscribeRealtime) unsubscribeRealtime();
+
+      // Simple collection query without compound operators (Rule 2)
+      unsubscribeRealtime = onSnapshot(recordsCol, (snapshot) => {
+        const synced = [];
+        snapshot.forEach(docSnap => {
+          synced.push({
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+
+        // In-memory sorting by creation time descending (Rule 2 compliant)
+        synced.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        records = synced;
+
+        renderApp();
+        updateNextEnvelopeNumber();
+      }, (error) => {
+        console.error("Firestore onSnapshot error:", error);
+        showToast('실시간 동기화 오류: ' + error.message, 'warning');
+        updateCloudSyncStatusBadge(false, '동기화 연결 끊김');
+      });
+    }
+
+    function updateCloudSyncStatusBadge(connected, text) {
+      const badge = document.getElementById('cloudStatusBadge');
+      const dot = document.getElementById('cloudStatusDot');
+      const label = document.getElementById('cloudStatusText');
+
+      if (!badge || !dot || !label) return;
+
+      if (connected) {
+        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+        label.innerText = text || '실시간 클라우드 연동 중';
+      } else {
+        badge.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 transition-colors';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        label.innerText = text || '로컬 독립 모드';
+      }
+    }
+
     function switchTab(tab) {
       currentTab = tab;
 
@@ -939,7 +1028,6 @@
       const btnList = document.getElementById('tabBtnList');
       const btnStats = document.getElementById('tabBtnStats');
 
-      // Reset classes
       [btnHome, btnList, btnStats].forEach(b => {
         b.className = 'btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-sm sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent';
       });
@@ -964,9 +1052,6 @@
       }
     }
 
-    /* ==============================================================
-       3. Form Interactions (Side, Amount, Tickets)
-       ============================================================== */
     function selectSide(side) {
       document.getElementById('selectedSide').value = side;
       
@@ -975,7 +1060,6 @@
       const btnNeutral = document.getElementById('sideBtnNeutral');
       const sideLabel = document.getElementById('currentSideLabel');
 
-      // Reset styles
       btnGroom.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-groom hover:bg-wedding-groomBg';
       btnBride.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-wedding-bride hover:bg-wedding-brideBg';
       btnNeutral.className = 'side-btn btn-tactile relative p-3 sm:p-4 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center space-y-1 bg-white border-stone-200 text-stone-600 hover:border-stone-400 hover:bg-stone-50';
@@ -994,14 +1078,12 @@
         sideLabel.innerText = '미구분';
       }
 
-      // Update independent envelope sequence for the newly chosen side
       updateNextEnvelopeNumber();
     }
 
     function setQuickAmount(amount) {
       document.getElementById('finalAmount').value = amount;
       
-      // Update quick amount buttons active state
       const buttons = document.querySelectorAll('.amount-btn');
       buttons.forEach(btn => {
         const val = parseInt(btn.getAttribute('data-amount'), 10);
@@ -1012,10 +1094,8 @@
         }
       });
 
-      // Close custom input container if visible
       document.getElementById('customAmountContainer').classList.add('hidden');
       document.getElementById('customAmountInput').value = '';
-
       updateAmountLabel(amount);
     }
 
@@ -1027,7 +1107,6 @@
       if (isHidden) {
         container.classList.remove('hidden');
         input.focus();
-        // Clear active states of quick buttons
         document.querySelectorAll('.amount-btn').forEach(btn => {
           btn.className = 'amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all';
         });
@@ -1049,7 +1128,6 @@
       const next = current + delta;
       document.getElementById('finalAmount').value = next;
       
-      // Check if matches preset
       let matched = false;
       document.querySelectorAll('.amount-btn').forEach(btn => {
         if (parseInt(btn.getAttribute('data-amount'), 10) === next) {
@@ -1078,12 +1156,10 @@
         label.innerText = '0원';
         return;
       }
-
       let korean = numberToKoreanWon(amount);
       label.innerText = `${korean} (${amount.toLocaleString()}원)`;
     }
 
-    // Helper: 100000 -> 십만원, 150000 -> 십오만원, 1000000 -> 백만원
     function numberToKoreanWon(num) {
       if (num === 0) return '0원';
       const man = Math.floor(num / 10000);
@@ -1093,7 +1169,6 @@
       if (man > 0) {
         const units = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
         const digits = ['', '십', '백', '천'];
-        
         let manStr = '';
         let m = man;
         let pos = 0;
@@ -1114,9 +1189,6 @@
       return result + '원';
     }
 
-    /* ==============================================================
-       4. Meal Ticket Stepper Logic
-       ============================================================== */
     function adjustTickets(delta) {
       const input = document.getElementById('ticketCountInput');
       let val = parseInt(input.value || 0, 10) + delta;
@@ -1142,10 +1214,7 @@
       el.focus();
     }
 
-    /* ==============================================================
-       5. Form Submission & Record Creation
-       ============================================================== */
-    function handleFormSubmit(e) {
+    async function handleFormSubmit(e) {
       e.preventDefault();
 
       const nameInput = document.getElementById('guestName');
@@ -1165,49 +1234,59 @@
 
       const tickets = parseInt(document.getElementById('ticketCountInput').value || 0, 10);
       const memo = document.getElementById('memo').value.trim();
-
-      // Independent numbering per side (Groom side 1,2,3... Bride side 1,2,3... Neutral 1,2,3...)
       const nextNum = getNextEnvelopeNumberForSide(side);
+
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const timestamp = `${hours}:${minutes}`;
 
       const newRecord = {
-        id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         envelopeNum: nextNum,
         side,
         name,
         amount,
         tickets,
         memo,
-        timestamp
+        timestamp,
+        createdAt: Date.now(),
+        creatorUid: currentUser?.uid || 'offline-desk'
       };
 
-      records.unshift(newRecord);
-
       try {
-        confetti({
-          particleCount: 28,
-          spread: 60,
-          origin: { y: 0.8 },
-          colors: ['#C5A059', '#E8A598', '#4A6FA5', '#EFE7DC']
-        });
-      } catch (err) {}
+        if (isCloudActive && currentUser && db) {
+          // Public collection document (Rule 1)
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', newRecord.id);
+          await setDoc(docRef, newRecord);
+        } else {
+          records.unshift(newRecord);
+          renderApp();
+          updateNextEnvelopeNumber();
+        }
 
-      const sideKorean = side === 'groom' ? '신랑측' : (side === 'bride' ? '신부측' : '미구분');
-      showToast(`[${sideKorean} #${String(nextNum).padStart(3, '0')}] ${name} 님 ${amount.toLocaleString()}원 접수 완료!`, 'success');
+        try {
+          confetti({
+            particleCount: 26,
+            spread: 55,
+            origin: { y: 0.8 },
+            colors: ['#C5A059', '#E8A598', '#4A6FA5', '#EFE7DC']
+          });
+        } catch (err) {}
 
-      // Reset form fields
-      nameInput.value = '';
-      document.getElementById('memo').value = '';
-      document.getElementById('ticketCountInput').value = 1;
-      setQuickAmount(100000);
-      nameInput.focus();
+        const sideKorean = side === 'groom' ? '신랑측' : (side === 'bride' ? '신부측' : '미구분');
+        showToast(`[${sideKorean} #${String(nextNum).padStart(3, '0')}] ${name} 님 ${amount.toLocaleString()}원 실시간 접수 완료!`, 'success');
 
-      // Update envelope badge for the current active side
-      updateNextEnvelopeNumber();
-      renderApp();
+        nameInput.value = '';
+        document.getElementById('memo').value = '';
+        document.getElementById('ticketCountInput').value = 1;
+        setQuickAmount(100000);
+        nameInput.focus();
+        updateNextEnvelopeNumber();
+      } catch (saveErr) {
+        console.error("Cloud registration error:", saveErr);
+        showToast('접수 저장 중 오류가 발생했습니다: ' + saveErr.message, 'warning');
+      }
     }
 
     function resetForm() {
@@ -1219,7 +1298,6 @@
       document.getElementById('guestName').focus();
     }
 
-    /* Independent envelope sequence counter for each side */
     function getNextEnvelopeNumberForSide(side) {
       const sideRecords = records.filter(r => r.side === side);
       if (sideRecords.length === 0) return 1;
@@ -1233,9 +1311,6 @@
       document.getElementById('currentEnvelopeNum').innerText = '#' + String(num).padStart(3, '0');
     }
 
-    /* ==============================================================
-       6. Rendering & Calculations
-       ============================================================== */
     function renderApp() {
       updateSummaries();
       renderRecentEntries();
@@ -1253,27 +1328,22 @@
 
       const groomAmount = groomRecords.reduce((sum, r) => sum + r.amount, 0);
       const brideAmount = brideRecords.reduce((sum, r) => sum + r.amount, 0);
-      const neutralAmount = neutralRecords.reduce((sum, r) => sum + r.amount, 0);
 
-      // Header Quick Badge
       document.getElementById('quickTotalAmount').innerText = totalAmount.toLocaleString() + '원';
       document.getElementById('quickTotalTickets').innerText = totalTickets.toLocaleString() + '장';
       document.getElementById('tabCountBadge').innerText = totalCount;
 
-      // Home Summary Card
       document.getElementById('summaryTotalCount').innerText = totalCount;
       document.getElementById('summaryTotalTickets').innerText = totalTickets;
       document.getElementById('summaryGroomAmount').innerText = groomAmount.toLocaleString() + '원';
       document.getElementById('summaryBrideAmount').innerText = brideAmount.toLocaleString() + '원';
 
-      // Groom / Bride Bar Ratio
       const totalGroomBride = groomAmount + brideAmount;
       const groomPercent = totalGroomBride > 0 ? (groomAmount / totalGroomBride) * 100 : 50;
       const bridePercent = 100 - groomPercent;
       document.getElementById('ratioGroomBar').style.width = `${groomPercent}%`;
       document.getElementById('ratioBrideBar').style.width = `${bridePercent}%`;
 
-      // Statistics KPIs
       document.getElementById('kpiTotalAmount').innerText = totalAmount.toLocaleString() + '원';
       document.getElementById('kpiGroomAmount').innerText = groomAmount.toLocaleString() + '원';
       document.getElementById('kpiGroomCount').innerText = groomRecords.length;
@@ -1284,7 +1354,6 @@
       const avg = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
       document.getElementById('kpiAvgAmount').innerText = avg.toLocaleString() + '원';
 
-      // Tab 2 Filter counters
       document.getElementById('filterCount_all').innerText = `(${totalCount})`;
       document.getElementById('filterCount_groom').innerText = `(${groomRecords.length})`;
       document.getElementById('filterCount_bride').innerText = `(${brideRecords.length})`;
@@ -1335,12 +1404,8 @@
       }).join('');
     }
 
-    /* ==============================================================
-       7. Records List & Management Table
-       ============================================================== */
     function setListFilter(filter) {
       currentFilter = filter;
-      
       const filterBtns = document.querySelectorAll('.filter-tab-btn');
       filterBtns.forEach(btn => {
         btn.className = 'filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-900 transition-all';
@@ -1350,18 +1415,14 @@
       if (activeBtn) {
         activeBtn.className = 'filter-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-stone-900 shadow-xs transition-all';
       }
-
       renderListTable();
     }
 
     function handleSearch(val) {
       searchQuery = val.trim().toLowerCase();
       const clearBtn = document.getElementById('clearSearchBtn');
-      if (searchQuery) {
-        clearBtn.classList.remove('hidden');
-      } else {
-        clearBtn.classList.add('hidden');
-      }
+      if (searchQuery) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
       renderListTable();
     }
 
@@ -1376,7 +1437,6 @@
       const tbody = document.getElementById('recordsTableBody');
       const emptyState = document.getElementById('tableEmptyState');
 
-      // Filter data
       let filtered = records.filter(r => {
         const matchesSide = currentFilter === 'all' || r.side === currentFilter;
         const matchesSearch = !searchQuery || 
@@ -1386,7 +1446,6 @@
         return matchesSide && matchesSearch;
       });
 
-      // Update bottom filtered count & total
       const filteredAmount = filtered.reduce((s, r) => s + r.amount, 0);
       const filteredTickets = filtered.reduce((s, r) => s + r.tickets, 0);
       document.getElementById('filteredCountText').innerText = filtered.length;
@@ -1458,9 +1517,6 @@
       }).join('');
     }
 
-    /* ==============================================================
-       8. Password Verification Logic (PIN: 77985590)
-       ============================================================== */
     function requestPasswordAndExecute(actionTitle, callback) {
       pendingAuthCallback = callback;
       const modal = document.getElementById('passwordModal');
@@ -1518,23 +1574,37 @@
       document.getElementById('editModal').classList.add('hidden');
     }
 
-    function handleEditSubmit(e) {
+    async function handleEditSubmit(e) {
       e.preventDefault();
       const id = document.getElementById('editRecordId').value;
-      const index = records.findIndex(r => r.id === id);
-      if (index === -1) return;
+      const envelopeNum = parseInt(document.getElementById('editEnvelopeNum').value, 10);
+      const side = document.getElementById('editSide').value;
+      const name = document.getElementById('editGuestName').value.trim();
+      const amount = parseInt(document.getElementById('editAmount').value, 10);
+      const tickets = parseInt(document.getElementById('editTickets').value, 10);
+      const memo = document.getElementById('editMemo').value.trim();
 
-      records[index].envelopeNum = parseInt(document.getElementById('editEnvelopeNum').value, 10);
-      records[index].side = document.getElementById('editSide').value;
-      records[index].name = document.getElementById('editGuestName').value.trim();
-      records[index].amount = parseInt(document.getElementById('editAmount').value, 10);
-      records[index].tickets = parseInt(document.getElementById('editTickets').value, 10);
-      records[index].memo = document.getElementById('editMemo').value.trim();
+      const updateData = { envelopeNum, side, name, amount, tickets, memo, updatedAt: Date.now() };
 
-      closeEditModal();
-      renderApp();
-      updateNextEnvelopeNumber();
-      showToast('성공적으로 수정되었습니다.', 'success');
+      try {
+        if (isCloudActive && currentUser && db) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', id);
+          await setDoc(docRef, updateData, { merge: true });
+        } else {
+          const index = records.findIndex(r => r.id === id);
+          if (index !== -1) {
+            records[index] = { ...records[index], ...updateData };
+            renderApp();
+            updateNextEnvelopeNumber();
+          }
+        }
+
+        closeEditModal();
+        showToast('성공적으로 수정 및 동기화되었습니다.', 'success');
+      } catch (err) {
+        console.error("Edit submit error:", err);
+        showToast('수정 반영 실패: ' + err.message, 'warning');
+      }
     }
 
     function confirmDeleteRecord(recordId) {
@@ -1549,11 +1619,21 @@
         iconBg: 'bg-rose-100 text-rose-600',
         icon: 'fa-trash-can',
         okText: '삭제하기',
-        onConfirm: () => {
-          records = records.filter(r => r.id !== recordId);
-          renderApp();
-          updateNextEnvelopeNumber();
-          showToast('내역이 삭제되었습니다.', 'info');
+        onConfirm: async () => {
+          try {
+            if (isCloudActive && currentUser && db) {
+              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', recordId);
+              await deleteDoc(docRef);
+            } else {
+              records = records.filter(r => r.id !== recordId);
+              renderApp();
+              updateNextEnvelopeNumber();
+            }
+            showToast('내역이 삭제되었습니다.', 'info');
+          } catch (err) {
+            console.error("Delete record error:", err);
+            showToast('삭제 실패: ' + err.message, 'warning');
+          }
         }
       });
     }
@@ -1566,19 +1646,29 @@
           iconBg: 'bg-rose-100 text-rose-600',
           icon: 'fa-triangle-exclamation',
           okText: '전체 초기화',
-          onConfirm: () => {
-            records = [];
-            renderApp();
-            updateNextEnvelopeNumber();
-            showToast('모든 내역이 초기화되었습니다.', 'warning');
+          onConfirm: async () => {
+            try {
+              if (isCloudActive && currentUser && db) {
+                const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+                const snapshot = await getDocs(recordsCol);
+                const batch = writeBatch(db);
+                snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+                await batch.commit();
+              } else {
+                records = [];
+                renderApp();
+                updateNextEnvelopeNumber();
+              }
+              showToast('모든 내역이 초기화되었습니다.', 'warning');
+            } catch (err) {
+              console.error("Reset error:", err);
+              showToast('초기화 실패: ' + err.message, 'warning');
+            }
           }
         });
       });
     }
 
-    /* ==============================================================
-       9. Excel Download (.xlsx) via SheetJS
-       ============================================================== */
     function exportToExcel() {
       if (records.length === 0) {
         showToast('내보낼 축의금 내역이 없습니다.', 'warning');
@@ -1615,15 +1705,8 @@
       });
 
       const worksheet = XLSX.utils.json_to_sheet(excelRows);
-
       worksheet['!cols'] = [
-        { wch: 12 }, // 구분
-        { wch: 16 }, // 봉투번호
-        { wch: 16 }, // 성함
-        { wch: 18 }, // 금액
-        { wch: 14 }, // 식권
-        { wch: 26 }, // 메모
-        { wch: 12 }  // 접수시간
+        { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 26 }, { wch: 12 }
       ];
 
       const workbook = XLSX.utils.book_new();
@@ -1637,11 +1720,7 @@
       showToast('엑셀 파일이 성공적으로 다운로드되었습니다.', 'success');
     }
 
-    /* ==============================================================
-       10. Chart.js Visualization
-       ============================================================== */
     function renderCharts() {
-      // 1. Side Ratio Doughnut Chart
       const groomAmount = records.filter(r => r.side === 'groom').reduce((s, r) => s + r.amount, 0);
       const brideAmount = records.filter(r => r.side === 'bride').reduce((s, r) => s + r.amount, 0);
       const neutralAmount = records.filter(r => r.side === 'neutral').reduce((s, r) => s + r.amount, 0);
@@ -1652,9 +1731,7 @@
       document.getElementById('statRatioNeutral').innerText = total > 0 ? Math.round((neutralAmount / total) * 100) + '%' : '0%';
 
       const ratioCtx = document.getElementById('sideRatioChart').getContext('2d');
-      if (sideRatioChartInstance) {
-        sideRatioChartInstance.destroy();
-      }
+      if (sideRatioChartInstance) sideRatioChartInstance.destroy();
 
       sideRatioChartInstance = new Chart(ratioCtx, {
         type: 'doughnut',
@@ -1674,10 +1751,7 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                font: { family: 'Pretendard', size: 12 },
-                padding: 16
-              }
+              labels: { font: { family: 'Pretendard', size: 12 }, padding: 16 }
             },
             tooltip: {
               callbacks: {
@@ -1692,17 +1766,9 @@
         }
       });
 
-      // 2. Amount Bracket Bar Chart
-      // Brackets: 3만, 5만, 10만, 15만, 20만, 30만, 50만, 기타/100만이상
       const brackets = {
-        '3만원': 0,
-        '5만원': 0,
-        '10만원': 0,
-        '15만원': 0,
-        '20만원': 0,
-        '30만원': 0,
-        '50만원': 0,
-        '기타/이상': 0
+        '3만원': 0, '5만원': 0, '10만원': 0, '15만원': 0,
+        '20만원': 0, '30만원': 0, '50만원': 0, '기타/이상': 0
       };
 
       records.forEach(r => {
@@ -1717,9 +1783,7 @@
       });
 
       const distCtx = document.getElementById('amountDistChart').getContext('2d');
-      if (amountDistChartInstance) {
-        amountDistChartInstance.destroy();
-      }
+      if (amountDistChartInstance) amountDistChartInstance.destroy();
 
       amountDistChartInstance = new Chart(distCtx, {
         type: 'bar',
@@ -1736,25 +1800,15 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1, precision: 0 }
-            },
-            x: {
-              grid: { display: false }
-            }
+            y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+            x: { grid: { display: false } }
           }
         }
       });
     }
 
-    /* ==============================================================
-       11. UI Utilities: Custom Modal & Toast
-       ============================================================== */
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
@@ -1763,11 +1817,8 @@
       let border = 'border-stone-300';
       let bg = 'bg-stone-900 text-white';
 
-      if (type === 'success') {
-        icon = 'fa-circle-check text-emerald-400';
-      } else if (type === 'warning') {
-        icon = 'fa-triangle-exclamation text-amber-400';
-      }
+      if (type === 'success') icon = 'fa-circle-check text-emerald-400';
+      else if (type === 'warning') icon = 'fa-triangle-exclamation text-amber-400';
 
       toast.className = `pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-2xl ${bg} shadow-elevated border ${border} text-xs sm:text-sm font-medium transform transition-all duration-300 translate-y-3 opacity-0`;
       toast.innerHTML = `
@@ -1776,13 +1827,8 @@
       `;
 
       container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-3', 'opacity-0'));
 
-      // Animate in
-      requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-3', 'opacity-0');
-      });
-
-      // Animate out
       setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
@@ -1821,7 +1867,6 @@
 
       okBtn.addEventListener('click', handleOk);
       cancelBtn.addEventListener('click', handleCancel);
-
       modal.classList.remove('hidden');
     }
 
@@ -1834,6 +1879,35 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    window.switchTab = switchTab;
+    window.selectSide = selectSide;
+    window.setQuickAmount = setQuickAmount;
+    window.toggleCustomAmount = toggleCustomAmount;
+    window.handleCustomAmountInput = handleCustomAmountInput;
+    window.addAmount = addAmount;
+    window.resetAmount = resetAmount;
+    window.adjustTickets = adjustTickets;
+    window.setTickets = setTickets;
+    window.validateTicketInput = validateTicketInput;
+    window.clearGuestName = clearGuestName;
+    window.handleFormSubmit = handleFormSubmit;
+    window.resetForm = resetForm;
+    window.setListFilter = setListFilter;
+    window.handleSearch = handleSearch;
+    window.clearSearch = clearSearch;
+    window.exportToExcel = exportToExcel;
+    window.closeEditModal = closeEditModal;
+    window.handleEditSubmit = handleEditSubmit;
+    window.closePasswordModal = closePasswordModal;
+    window.submitPasswordModal = submitPasswordModal;
+    window.requestPasswordAndExecute = requestPasswordAndExecute;
+    window.openEditModal = openEditModal;
+    window.confirmDeleteRecord = confirmDeleteRecord;
+    window.confirmResetAllData = confirmResetAllData;
+
+    // Start application on page load
+    window.addEventListener('DOMContentLoaded', initializeSystem);
   </script>
 </body>
 </html>
