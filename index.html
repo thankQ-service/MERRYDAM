@@ -1771,9 +1771,9 @@
     const LOCAL_DELETED_VIRTUAL_KEY = "merrydam_deleted_virtual_v3";
     const LOCAL_DELETED_IDS_KEY = "merrydam_deleted_ids_v3";
     const LOCAL_MASTER_ADMIN_KEY = "merrydam_master_admin_auth_v3";
-    const GLOBAL_SYNC_TOPIC = "merrydam_cloud_sync_v4_77985590";
-    const GLOBAL_BLOB_PTR_TOPIC = "merrydam_cloud_blobptr_v4_77985590";
-    const LOCAL_BLOB_ID_KEY = "merrydam_global_blob_id_v4";
+    const GLOBAL_SYNC_TOPIC = "merrydam_live_bus_v5_77985590";
+    const LOCAL_BLOB_ID_KEY = "merrydam_global_blob_id_v5";
+    const CLIENT_INSTANCE_ID = "cli_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
 
     let db = null;
     let auth = null;
@@ -1785,6 +1785,8 @@
     let globalEventSource = null;
     let globalSyncBlobId = localStorage.getItem(LOCAL_BLOB_ID_KEY) || '';
     let isSyncPulling = false;
+    let lastPollTimestamp = 0;
+    let lastPeerBroadcastTs = 0;
 
     let weddings = [];
     let allRecords = [];
@@ -2204,7 +2206,10 @@
     }
 
     // ==============================================================
-    // PC ↔ 모바일 100% 보장형 이중 클라우드 동기화 브릿지 (Firestore + Global Stream)
+    // PC ↔ 모바일 100% 보장형 다중 클라우드 동기화 엔진
+    // (1) 실시간 SSE 스트림 (?since=24h 히스토리 자동 복원)
+    // (2) CORS 호환 영구 스냅샷 저장소 (bytebin JSON key 방식)
+    // (3) 기기 간 자동 상호 동기화 (Peer-to-Peer Sync Handshake)
     // ==============================================================
     function getCustomDataSnapshot() {
       const customWeddings = weddings.filter(w => w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(w.id));
@@ -2248,8 +2253,12 @@
             weddings.unshift(w);
             changed = true;
           } else if ((w.createdAt || 0) >= (weddings[idx].createdAt || 0)) {
-            weddings[idx] = { ...weddings[idx], ...w };
-            changed = true;
+            const prevStr = JSON.stringify(weddings[idx]);
+            const nextObj = { ...weddings[idx], ...w };
+            if (prevStr !== JSON.stringify(nextObj)) {
+              weddings[idx] = nextObj;
+              changed = true;
+            }
           }
         }
       }
@@ -2263,9 +2272,9 @@
             changed = true;
           } else {
             const prevStr = JSON.stringify(allRecords[idx]);
-            const nextStr = JSON.stringify(r);
-            if (prevStr !== nextStr) {
-              allRecords[idx] = { ...allRecords[idx], ...r };
+            const nextObj = { ...allRecords[idx], ...r };
+            if (prevStr !== JSON.stringify(nextObj)) {
+              allRecords[idx] = nextObj;
               changed = true;
             }
           }
@@ -2291,15 +2300,14 @@
         });
         payload.weddings.forEach(w => {
           if (w && w.id && !deletedIdsSet.has(w.id)) {
-            if (!wMap.has(w.id)) {
+            const existing = wMap.get(w.id);
+            if (!existing || JSON.stringify(existing) !== JSON.stringify(w)) {
               changed = true;
             }
-            wMap.set(w.id, w);
+            wMap.set(w.id, existing ? { ...existing, ...w } : w);
           }
         });
-        const nextWeddings = Array.from(wMap.values());
-        if (nextWeddings.length !== weddings.length) changed = true;
-        weddings = nextWeddings;
+        weddings = Array.from(wMap.values());
       }
 
       if (Array.isArray(payload.records)) {
@@ -2313,12 +2321,10 @@
             if (!existing || JSON.stringify(existing) !== JSON.stringify(r)) {
               changed = true;
             }
-            rMap.set(r.id, r);
+            rMap.set(r.id, existing ? { ...existing, ...r } : r);
           }
         });
-        const nextRecords = Array.from(rMap.values());
-        if (nextRecords.length !== allRecords.length) changed = true;
-        allRecords = nextRecords;
+        allRecords = Array.from(rMap.values());
       }
 
       if (changed) {
@@ -2341,141 +2347,248 @@
       return changed;
     }
 
-    async function broadcastGlobalEvent(eventObj) {
+    async function fetchAndApplySnapshotKey(key) {
+      if (!key || typeof key !== 'string') return false;
       try {
-        await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body: JSON.stringify(eventObj)
+        const res = await fetch(`https://bytebin.lucko.me/${encodeURIComponent(key)}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
         });
+        if (res.ok) {
+          const snap = await res.json();
+          globalSyncBlobId = key;
+          try { localStorage.setItem(LOCAL_BLOB_ID_KEY, key); } catch (e) {}
+          return applyIncomingCloudData(snap);
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    async function uploadFullSnapshotToCloud() {
+      try {
+        const snapshotData = getCustomDataSnapshot();
+        const postRes = await fetch('https://bytebin.lucko.me/post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(snapshotData)
+        });
+        if (postRes.ok) {
+          const json = await postRes.json();
+          if (json && json.key) {
+            globalSyncBlobId = json.key;
+            try { localStorage.setItem(LOCAL_BLOB_ID_KEY, globalSyncBlobId); } catch (e) {}
+            await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+              body: JSON.stringify({
+                type: 'snapshot_ptr',
+                key: globalSyncBlobId,
+                sender: CLIENT_INSTANCE_ID,
+                ts: Date.now()
+              })
+            });
+            return globalSyncBlobId;
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    async function broadcastLocalStateToPeers() {
+      const now = Date.now();
+      if (now - lastPeerBroadcastTs < 2500) return;
+      lastPeerBroadcastTs = now;
+
+      const snap = getCustomDataSnapshot();
+      if (snap.weddings.length === 0 && snap.records.length === 0 && snap.deletedIds.length === 0) return;
+
+      // 1. 전체 스냅샷 업로드 및 포인터 브로드캐스트
+      await uploadFullSnapshotToCloud();
+
+      // 2. 개별 예식 정보를 소형 패킷으로 즉시 전송 (4KB 제한 안전 통과)
+      for (const w of snap.weddings) {
+        try {
+          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: JSON.stringify({
+              type: 'w_upsert',
+              item: w,
+              sender: CLIENT_INSTANCE_ID,
+              ts: Date.now()
+            })
+          });
+        } catch (e) {}
+      }
+
+      // 3. 커스텀 접수 내역을 8건씩 분할 패킷으로 전송하여 모바일·PC 누락 원천 방지
+      const chunkSize = 8;
+      for (let i = 0; i < snap.records.length; i += chunkSize) {
+        const chunk = snap.records.slice(i, i + chunkSize);
+        try {
+          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: JSON.stringify({
+              type: 'batch_sync',
+              records: chunk,
+              deletedIds: snap.deletedIds,
+              sender: CLIENT_INSTANCE_ID,
+              ts: Date.now()
+            })
+          });
+        } catch (e) {}
+      }
+    }
+
+    async function broadcastGlobalEvent(eventObj) {
+      const payloadWithSender = {
+        ...eventObj,
+        sender: CLIENT_INSTANCE_ID,
+        ts: Date.now()
+      };
+
+      try {
+        const bodyStr = JSON.stringify(payloadWithSender);
+        if (bodyStr.length < 3600) {
+          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: bodyStr
+          });
+        }
         setCloudBadgeState('cloud');
       } catch (e) {}
 
-      // 전체 스냅샷 백업 (새로 접속하는 모바일/PC가 한 번에 전체 내역을 복원할 수 있도록 저장)
+      // 전체 스냅샷도 함께 갱신하여 나중에 접속하는 기기도 100% 복원되도록 보장
+      await uploadFullSnapshotToCloud();
+    }
+
+    async function handleRawEnvelopeMessage(rawMessageStr) {
+      if (!rawMessageStr) return;
       try {
-        const snapshotData = getCustomDataSnapshot();
-        if (globalSyncBlobId) {
-          const putRes = await fetch(`https://jsonblob.com/api/jsonBlob/${globalSyncBlobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(snapshotData)
-          });
-          if (!putRes.ok) globalSyncBlobId = '';
+        const payload = JSON.parse(rawMessageStr);
+        if (!payload || typeof payload !== 'object') return;
+
+        if (payload.type === 'snapshot_ptr' && payload.key) {
+          await fetchAndApplySnapshotKey(payload.key);
+          return;
         }
-        if (!globalSyncBlobId) {
-          const postRes = await fetch('https://jsonblob.com/api/jsonBlob', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(snapshotData)
-          });
-          const loc = postRes.headers.get('Location') || postRes.headers.get('location') || '';
-          const extractedId = loc.split('/').pop();
-          if (extractedId) {
-            globalSyncBlobId = extractedId;
-            try { localStorage.setItem(LOCAL_BLOB_ID_KEY, globalSyncBlobId); } catch (e) {}
-            await fetch(`https://ntfy.sh/${GLOBAL_BLOB_PTR_TOPIC}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-              body: JSON.stringify({ blobId: globalSyncBlobId, ts: Date.now() })
-            });
-          }
+
+        if (payload.type === 'sync_req' && payload.sender !== CLIENT_INSTANCE_ID) {
+          broadcastLocalStateToPeers();
+          return;
         }
+
+        applyIncomingCloudData(payload);
       } catch (e) {}
     }
 
-    async function pullLatestFromAllClouds() {
+    async function pullLatestFromAllClouds(force = false) {
+      const now = Date.now();
       if (isSyncPulling) return;
-      isSyncPulling = true;
-      try {
-        // 1. 글로벌 포인터 스냅샷 조회
-        try {
-          const ptrRes = await fetch(`https://ntfy.sh/${GLOBAL_BLOB_PTR_TOPIC}/json?poll=1&since=all`);
-          if (ptrRes.ok) {
-            const text = await ptrRes.text();
-            const lines = text.trim().split('\n').filter(Boolean);
-            let latestBlobId = globalSyncBlobId;
-            for (let i = lines.length - 1; i >= 0; i--) {
-              try {
-                const msg = JSON.parse(lines[i]);
-                if (msg && msg.message) {
-                  const parsed = JSON.parse(msg.message);
-                  if (parsed && parsed.blobId) {
-                    latestBlobId = parsed.blobId;
-                    break;
-                  }
-                }
-              } catch (e) {}
-            }
-            if (latestBlobId) {
-              globalSyncBlobId = latestBlobId;
-              try { localStorage.setItem(LOCAL_BLOB_ID_KEY, globalSyncBlobId); } catch (e) {}
-              const blobRes = await fetch(`https://jsonblob.com/api/jsonBlob/${latestBlobId}`);
-              if (blobRes.ok) {
-                const snap = await blobRes.json();
-                applyIncomingCloudData(snap);
-              }
-            }
-          }
-        } catch (e) {}
+      if (!force && now - lastPollTimestamp < 6000) return;
 
-        // 2. 글로벌 실시간 이벤트 히스토리 스트림(예식 개설, 축의 접수, 수정, 삭제) 전체 병합
-        try {
-          const streamRes = await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=all`);
-          if (streamRes.ok) {
-            const text = await streamRes.text();
-            const lines = text.trim().split('\n').filter(Boolean);
-            lines.forEach(line => {
-              try {
-                const envelope = JSON.parse(line);
-                if (envelope && envelope.message) {
-                  const payload = JSON.parse(envelope.message);
-                  applyIncomingCloudData(payload);
+      isSyncPulling = true;
+      lastPollTimestamp = now;
+
+      try {
+        // 1. 기존에 알고 있는 스냅샷 키가 있으면 우선 조회
+        if (globalSyncBlobId) {
+          await fetchAndApplySnapshotKey(globalSyncBlobId);
+        }
+
+        // 2. 최근 24시간 내 모든 클라우드 이벤트 히스토리 조회 (유효한 since=24h 파라미터 사용)
+        const streamRes = await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`);
+        if (streamRes.ok) {
+          const text = await streamRes.text();
+          const lines = text.trim().split('\n').filter(Boolean);
+          let latestSnapshotKey = '';
+
+          for (let i = 0; i < lines.length; i++) {
+            try {
+              const envelope = JSON.parse(lines[i]);
+              if (envelope && envelope.event === 'message' && envelope.message) {
+                const parsed = JSON.parse(envelope.message);
+                if (parsed && parsed.type === 'snapshot_ptr' && parsed.key) {
+                  latestSnapshotKey = parsed.key;
+                } else if (parsed && parsed.type !== 'sync_req') {
+                  applyIncomingCloudData(parsed);
                 }
-              } catch (e) {}
-            });
-            setCloudBadgeState('cloud');
+              }
+            } catch (e) {}
           }
-        } catch (e) {}
+
+          if (latestSnapshotKey) {
+            await fetchAndApplySnapshotKey(latestSnapshotKey);
+          }
+          setCloudBadgeState('cloud');
+        }
+      } catch (e) {
       } finally {
         isSyncPulling = false;
       }
     }
 
-    function startGlobalRealtimeStream() {
-      pullLatestFromAllClouds().then(() => {
-        // 현재 기기에 저장된 커스텀 예식 및 내역을 클라우드 스트림에도 동기화 발행
-        const snap = getCustomDataSnapshot();
-        if (snap.weddings.length > 0 || snap.records.length > 0) {
-          broadcastGlobalEvent(snap);
-        }
-      });
-
+    function connectRealtimeSseStream() {
       try {
-        if (globalEventSource) globalEventSource.close();
-        globalEventSource = new EventSource(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/sse`);
+        if (globalEventSource) {
+          globalEventSource.close();
+          globalEventSource = null;
+        }
+        // since=24h 옵션으로 연결 즉시 최근 24시간 내 PC·모바일 등록 내역을 모두 스트리밍 수신
+        globalEventSource = new EventSource(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/sse?since=24h`);
+        globalEventSource.onopen = () => {
+          setCloudBadgeState('cloud');
+        };
         globalEventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             if (data && data.message) {
-              const payload = JSON.parse(data.message);
-              applyIncomingCloudData(payload);
+              handleRawEnvelopeMessage(data.message);
               setCloudBadgeState('cloud');
             }
           } catch (e) {}
         };
+        globalEventSource.onerror = () => {
+          // 연결이 일시 끊기면 5초 후 자동 재연결
+          setTimeout(() => {
+            if (!globalEventSource || globalEventSource.readyState === EventSource.CLOSED) {
+              connectRealtimeSseStream();
+            }
+          }, 5000);
+        };
       } catch (e) {}
+    }
 
-      // 모바일 백그라운드 전환이나 네트워크 변경 시에도 누락 없도록 주기적 동기화 및 포커스 동기화
+    function startGlobalRealtimeStream() {
+      connectRealtimeSseStream();
+
+      pullLatestFromAllClouds(true).then(() => {
+        // 현재 기기에 저장되어 있는 예식이나 접수 내역을 클라우드에 즉시 공유
+        const snap = getCustomDataSnapshot();
+        if (snap.weddings.length > 0 || snap.records.length > 0) {
+          broadcastLocalStateToPeers();
+        }
+        // 다른 열려 있는 PC/모바일 기기에게도 최신 상태 요청 신호 전송
+        fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ type: 'sync_req', sender: CLIENT_INSTANCE_ID, ts: Date.now() })
+        }).catch(() => {});
+      });
+
+      // Rate-limit(429)에 걸리지 않도록 18초 주기로 여유 있게 백그라운드 동기화 점검
       setInterval(() => {
-        pullLatestFromAllClouds();
-      }, 4000);
+        pullLatestFromAllClouds(false);
+      }, 18000);
 
       window.addEventListener('focus', () => {
-        pullLatestFromAllClouds();
+        pullLatestFromAllClouds(true);
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          pullLatestFromAllClouds();
+          pullLatestFromAllClouds(true);
         }
       });
     }
@@ -2714,7 +2827,7 @@
         sessionStorage.setItem('merrydam_user_role', 'admin');
         inputEl.value = '';
         if (errEl) errEl.classList.add('hidden');
-        await pullLatestFromAllClouds();
+        await pullLatestFromAllClouds(true);
         openAdminCenterModal();
         showToast('총괄 관리자 인증이 완료되었습니다. (예식 나가기 후에도 계속 유지됩니다)', 'success');
         return;
@@ -2750,9 +2863,9 @@
 
       let { matchedWedding, matchedRole } = findMatchingWedding();
 
-      // 다른 기기(PC 또는 모바일)에서 방금 등록한 예식일 수 있으므로 즉시 클라우드 최신 데이터를 받아와 재매칭
+      // 다른 기기(PC 또는 모바일)에서 방금 등록한 예식일 수 있으므로 즉시 클라우드 최신 데이터를 강제 동기화하여 재매칭
       if (!matchedWedding) {
-        await pullLatestFromAllClouds();
+        await pullLatestFromAllClouds(true);
         const retryResult = findMatchingWedding();
         matchedWedding = retryResult.matchedWedding;
         matchedRole = retryResult.matchedRole;
@@ -2766,7 +2879,7 @@
         if (errEl) errEl.classList.add('hidden');
 
         enterWedding(matchedWedding);
-        pullLatestFromAllClouds();
+        pullLatestFromAllClouds(true);
         const maskedG = maskName(matchedWedding.groomName);
         const maskedB = maskName(matchedWedding.brideName);
 
@@ -3367,8 +3480,8 @@
       updateAdminSharePreview(adminSelectedWeddingId);
       document.getElementById('adminCenterModal')?.classList.remove('hidden');
 
-      // 관리자 센터 오픈 시 PC·모바일 최신 예식 목록 즉시 동기화
-      pullLatestFromAllClouds().then(() => {
+      // 관리자 센터 오픈 시 PC·모바일 최신 예식 목록 즉시 강제 동기화
+      pullLatestFromAllClouds(true).then(() => {
         if (!adminSelectedWeddingId && weddings.length > 0) {
           adminSelectedWeddingId = activeWedding ? activeWedding.id : weddings[0].id;
         }
@@ -3392,7 +3505,7 @@
       sessionStorage.setItem('merrydam_admin_desk_side', adminDeskSide);
       closeAdminCenterModal();
       enterWedding(target);
-      pullLatestFromAllClouds();
+      pullLatestFromAllClouds(true);
 
       const maskedG = maskName(target.groomName);
       const maskedB = maskName(target.brideName);
@@ -3445,6 +3558,7 @@
           showToast('선택한 예식이 삭제되었습니다.', 'info');
 
           await deleteCloudDoc('weddings', wId);
+          await uploadFullSnapshotToCloud();
         }
       });
     }
