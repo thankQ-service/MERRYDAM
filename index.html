@@ -396,11 +396,11 @@
         <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
           
           <!-- 예식 변경 (보안 퇴장: 타 예식 열람 차단 가드) -->
-          <button type="button" onclick="confirmExitWeddingSession()"
+          <button id="headerExitBtn" type="button" onclick="confirmExitWeddingSession()"
             class="btn-tactile inline-flex items-center space-x-1 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all whitespace-nowrap" title="안전하게 나가기">
             <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-            <span class="hidden sm:inline">예식 나가기</span>
-            <span class="sm:hidden">나가기</span>
+            <span id="headerExitBtnText" class="hidden sm:inline">예식 나가기</span>
+            <span id="headerExitBtnTextMobile" class="sm:hidden">나가기</span>
           </button>
 
           <!-- Cloud Real-time Sync Status Badge -->
@@ -436,10 +436,10 @@
     <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
       <div class="flex space-x-1.5 sm:space-x-6 py-1.5 sm:py-2 overflow-x-auto no-scrollbar" role="tablist">
         
-        <!-- Tab: 접수하기 (홈) -->
+        <!-- Tab: 접수하기 (관리자: 축의 접수 / 신랑·신부: 축의 현황) -->
         <button id="tabBtnHome" onclick="switchTab('home')" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-base transition-all bg-white text-[#8C6D38] shadow-sm border border-[#DFCBB2] whitespace-nowrap">
-          <i class="fa-solid fa-pen-nib text-xs sm:text-sm"></i>
-          <span>축의 접수</span>
+          <i id="tabBtnHomeIcon" class="fa-solid fa-pen-nib text-xs sm:text-sm"></i>
+          <span id="tabBtnHomeText">축의 접수</span>
         </button>
 
         <!-- Tab: 접수 내역 -->
@@ -812,8 +812,9 @@
           </form>
         </div>
 
-        <!-- Right: Real-time Live Feed & Summary (4 Columns) -->
-        <div class="lg:col-span-4 space-y-5">
+        <!-- Right: Real-time Live Feed & Summary (관리자 4열 / 신랑·신부 열람 시 12열 전체 확장) -->
+        <div id="rightSummaryColumn" class="lg:col-span-4 space-y-5">
+          <div id="rightSummaryInnerGrid" class="space-y-5">
           
           <div class="bg-gradient-to-br from-[#FAF5EE] to-[#F1E5D5] p-5 rounded-3xl border border-[#E8D9C5] shadow-card">
             <h3 class="wedding-title font-bold text-lg text-stone-800 flex items-center space-x-2 mb-3">
@@ -888,6 +889,8 @@
                 아직 접수된 축의 내역이 없습니다.
               </div>
             </div>
+          </div>
+
           </div>
 
           <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-amber-900/80 text-xs flex items-center space-x-3">
@@ -1001,7 +1004,7 @@
                 <th class="py-3.5 px-4 sm:px-6 text-center w-40">식권 (성인/어린이)</th>
                 <th class="py-3.5 px-4 sm:px-6 hidden md:table-cell">메모 / 관계</th>
                 <th class="py-3.5 px-4 sm:px-6 text-center w-24 hidden lg:table-cell">접수 시간</th>
-                <th class="py-3.5 px-4 sm:px-6 text-center w-24 no-print">관리</th>
+                <th id="tableActionHeader" class="py-3.5 px-4 sm:px-6 text-center w-24 no-print">관리</th>
               </tr>
             </thead>
             <tbody id="recordsTableBody" class="divide-y divide-stone-100 text-sm">
@@ -1150,14 +1153,14 @@
       </div>
       
       <div class="flex items-center space-x-3">
-        <button onclick="requestAdminAccess()" class="btn-tactile text-[11px] text-stone-400 hover:text-stone-700 hover:underline flex items-center space-x-1.5 px-2 py-1 rounded-lg">
+        <button id="footerAdminBtn" onclick="requestAdminAccess()" class="btn-tactile text-[11px] text-stone-400 hover:text-stone-700 hover:underline flex items-center space-x-1.5 px-2 py-1 rounded-lg">
           <i class="fa-solid fa-gear text-[10px]"></i>
           <span>총괄 관리자 센터</span>
         </button>
-        <span class="text-stone-300">|</span>
+        <span id="footerAdminDivider" class="text-stone-300">|</span>
         <button onclick="confirmExitWeddingSession()" class="btn-tactile text-[11px] text-stone-400 hover:text-stone-700 flex items-center space-x-1 px-2 py-1 rounded-lg">
           <i class="fa-solid fa-door-open text-[10px]"></i>
-          <span>예식 나가기</span>
+          <span id="footerExitBtnText">예식 나가기</span>
         </button>
       </div>
     </div>
@@ -2872,6 +2875,13 @@
       }
 
       if (matchedWedding) {
+        // 신랑·신부 비밀번호로 로그인 시 이전 관리자 세션이 남아있더라도 즉시 해제하여 다른 예식 목록 노출 원천 차단
+        isMasterAdminSession = false;
+        try { localStorage.removeItem(LOCAL_MASTER_ADMIN_KEY); } catch (err) {}
+        adminDeskSide = 'all';
+        sessionStorage.removeItem('merrydam_admin_desk_side');
+        document.getElementById('adminCenterModal')?.classList.add('hidden');
+
         currentUserRole = matchedRole;
         sessionStorage.setItem('merrydam_user_role', matchedRole);
 
@@ -2952,35 +2962,39 @@
     }
 
     function confirmExitWeddingSession() {
-      // 총괄 관리자인 경우 확인 팝업이나 비밀번호 재입력 없이 즉시 예식 목록(관리자 센터)으로 전환
-      if (isMasterAdminSession) {
+      // 총괄 관리자로 실제 접속 중인 경우에만 예식 관리 목록(관리자 센터)으로 전환
+      if (currentUserRole === 'admin' && isMasterAdminSession) {
         exitWeddingToGate();
         return;
       }
 
-      openConfirmModal({
-        title: '예식 접수대 나가기',
-        message: '현재 열람 중인 예식 화면에서 안전하게 로그아웃하고 초기 비밀번호 입력 화면으로 돌아가시겠습니까?',
-        okText: '안전하게 나가기',
-        isDanger: false,
-        onConfirm: exitWeddingToGate
-      });
+      // 신랑·신부 열람 모드에서는 나가기 클릭 시 다른 예식 리스트 노출 없이 즉시 로그아웃 처리
+      exitWeddingToGate();
     }
 
     function exitWeddingToGate() {
+      const wasAdmin = (currentUserRole === 'admin' && isMasterAdminSession);
+
       activeWedding = null;
       records = [];
       adminDeskSide = 'all';
       sessionStorage.removeItem('merrydam_active_wedding_id');
       sessionStorage.removeItem('merrydam_admin_desk_side');
 
-      if (isMasterAdminSession) {
+      if (wasAdmin) {
         // 관리자는 예식 나가기를 해도 관리자 권한이 그대로 유지되며 즉시 총괄 관리자 센터가 열림
         currentUserRole = 'admin';
         sessionStorage.setItem('merrydam_user_role', 'admin');
       } else {
+        // 신랑·신부는 완전 로그아웃되어 초기 비밀번호 입력 게이트로만 이동 (타 예식 목록 절대 비노출)
+        isMasterAdminSession = false;
+        try { localStorage.removeItem(LOCAL_MASTER_ADMIN_KEY); } catch (e) {}
         currentUserRole = 'guest';
         sessionStorage.removeItem('merrydam_user_role');
+        document.getElementById('adminCenterModal')?.classList.add('hidden');
+        document.getElementById('coupleWelcomeModal')?.classList.add('hidden');
+        document.getElementById('excelExportModal')?.classList.add('hidden');
+        document.getElementById('pdfExportModal')?.classList.add('hidden');
       }
 
       document.getElementById('gateLockScreen')?.classList.remove('hidden');
@@ -2989,9 +3003,11 @@
       document.getElementById('gateDirectPassErrorMsg')?.classList.add('hidden');
       renderApp();
 
-      if (isMasterAdminSession) {
+      if (wasAdmin) {
         openAdminCenterModal();
         showToast('총괄 관리자 권한이 유지되어 예식 관리 목록으로 이동했습니다.', 'info');
+      } else {
+        showToast('안전하게 로그아웃되었습니다.', 'info');
       }
     }
 
@@ -3177,7 +3193,19 @@
       const bannerExcelText = document.getElementById('coupleBannerExcelBtnText');
       const bannerPdfText = document.getElementById('coupleBannerPdfBtnText');
 
+      const tabBtnHomeIcon = document.getElementById('tabBtnHomeIcon');
+      const tabBtnHomeText = document.getElementById('tabBtnHomeText');
+      const headerExitBtnText = document.getElementById('headerExitBtnText');
+      const headerExitBtnTextMobile = document.getElementById('headerExitBtnTextMobile');
+      const footerAdminBtn = document.getElementById('footerAdminBtn');
+      const footerAdminDivider = document.getElementById('footerAdminDivider');
+      const footerExitBtnText = document.getElementById('footerExitBtnText');
+
       const formCard = document.getElementById('receptionFormCard');
+      const rightSummaryColumn = document.getElementById('rightSummaryColumn');
+      const rightSummaryInnerGrid = document.getElementById('rightSummaryInnerGrid');
+      const tableActionHeader = document.getElementById('tableActionHeader');
+
       const sideBtnsGrid = document.getElementById('sideBtnsGrid');
       const sideBtnGroom = document.getElementById('sideBtnGroom');
       const sideBtnBride = document.getElementById('sideBtnBride');
@@ -3211,30 +3239,64 @@
       const restrictedSide = getRestrictedSide();
 
       if (isReadOnlyCoupleRole()) {
+        // 신랑·신부 모드: 접수 입력 폼 및 수정/삭제 관리 UI를 완전히 숨기고 [축의 현황 / 접수 내역 / 실시간 통계]만 표시
+        if (tabBtnHomeIcon) tabBtnHomeIcon.className = 'fa-solid fa-chart-simple text-xs sm:text-sm';
+        if (tabBtnHomeText) tabBtnHomeText.innerText = '축의 현황';
+        if (headerExitBtnText) headerExitBtnText.innerText = '로그아웃';
+        if (headerExitBtnTextMobile) headerExitBtnTextMobile.innerText = '로그아웃';
+        if (footerExitBtnText) footerExitBtnText.innerText = '로그아웃';
+        footerAdminBtn?.classList.add('hidden');
+        footerAdminDivider?.classList.add('hidden');
+
         coupleBanner?.classList.remove('hidden');
         resetBtn?.classList.add('hidden');
+        tableActionHeader?.classList.add('hidden');
+
         if (headerLockIcon) {
           headerLockIcon.className = 'fa-solid fa-download text-[10px] text-green-200 ml-0.5';
         }
         if (formCard) {
-          formCard.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
+          formCard.classList.add('hidden');
           const submitBtn = formCard.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
         }
+        if (rightSummaryColumn) {
+          rightSummaryColumn.className = 'lg:col-span-12 space-y-5';
+        }
+        if (rightSummaryInnerGrid) {
+          rightSummaryInnerGrid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+        }
       } else {
+        // 총괄 관리자 모드: 축의금 입력 폼 및 수정/삭제 관리 기능 전체 활성화
+        if (tabBtnHomeIcon) tabBtnHomeIcon.className = 'fa-solid fa-pen-nib text-xs sm:text-sm';
+        if (tabBtnHomeText) tabBtnHomeText.innerText = '축의 접수';
+        if (headerExitBtnText) headerExitBtnText.innerText = '예식 나가기';
+        if (headerExitBtnTextMobile) headerExitBtnTextMobile.innerText = '나가기';
+        if (footerExitBtnText) footerExitBtnText.innerText = '예식 나가기';
+        footerAdminBtn?.classList.remove('hidden');
+        footerAdminDivider?.classList.remove('hidden');
+
         if (roleBadge) {
           roleBadge.className = 'px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full bg-stone-900 text-amber-300 shadow-xs border border-amber-400/40 whitespace-nowrap';
           roleBadge.innerText = '현장 접수대 (관리자)';
         }
         coupleBanner?.classList.add('hidden');
         resetBtn?.classList.remove('hidden');
+        tableActionHeader?.classList.remove('hidden');
+
         if (headerLockIcon) {
           headerLockIcon.className = 'fa-solid fa-file-excel text-[9px] sm:text-[10px] text-green-200 ml-0.5';
         }
         if (formCard) {
-          formCard.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
+          formCard.classList.remove('hidden', 'opacity-40', 'pointer-events-none', 'grayscale');
           const submitBtn = formCard.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = false;
+        }
+        if (rightSummaryColumn) {
+          rightSummaryColumn.className = 'lg:col-span-4 space-y-5';
+        }
+        if (rightSummaryInnerGrid) {
+          rightSummaryInnerGrid.className = 'space-y-5';
         }
       }
 
@@ -3399,10 +3461,14 @@
             return;
           }
           currentUserRole = savedRole || (isMasterAdminSession ? 'admin' : 'couple');
-          if (currentUserRole === 'admin' || isMasterAdminSession) {
+          if (currentUserRole === 'admin') {
             isMasterAdminSession = true;
             localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
             adminDeskSide = (savedDeskSide === 'groom' || savedDeskSide === 'bride') ? savedDeskSide : 'all';
+          } else {
+            // 신랑·신부 세션 복원 시 관리자 플래그가 섞이지 않도록 격리
+            isMasterAdminSession = false;
+            adminDeskSide = 'all';
           }
           enterWedding(found);
         } else {
@@ -4097,8 +4163,8 @@
     async function handleFormSubmit(e) {
       e.preventDefault();
 
-      if (isReadOnlyCoupleRole()) {
-        showToast('열람 전용 모드에서는 장부 작성이 제한됩니다.', 'warning');
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole()) {
+        showToast('축의금 접수 및 입력은 메리담 관리자만 가능합니다.', 'warning');
         return;
       }
 
@@ -4450,7 +4516,7 @@
       }
 
       emptyState?.classList.add('hidden');
-      const isCouple = isReadOnlyCoupleRole();
+      const isCouple = isReadOnlyCoupleRole() || currentUserRole !== 'admin';
 
       tbody.innerHTML = filtered.map(r => {
         const sideBadge = r.side === 'groom'
@@ -4471,16 +4537,18 @@
           ticketHtml = `<div class="inline-flex items-center gap-1">${badges.join('')}</div>`;
         }
 
-        const actionCell = isCouple
-          ? '<span class="text-[11px] text-stone-400 font-medium whitespace-nowrap">열람전용</span>'
-          : `<div class="inline-flex items-center space-x-1">
-               <button type="button" onclick="openEditModal('${r.id}')" class="p-1.5 rounded-lg text-stone-500 hover:text-amber-800 hover:bg-amber-50 transition-colors" title="수정">
-                 <i class="fa-solid fa-pen-to-square"></i>
-               </button>
-               <button type="button" onclick="confirmDeleteRecord('${r.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="삭제">
-                 <i class="fa-solid fa-trash-can"></i>
-               </button>
-             </div>`;
+        const actionCellHtml = isCouple
+          ? ''
+          : `<td class="py-3 px-4 sm:px-6 text-center no-print">
+               <div class="inline-flex items-center space-x-1">
+                 <button type="button" onclick="openEditModal('${r.id}')" class="p-1.5 rounded-lg text-stone-500 hover:text-amber-800 hover:bg-amber-50 transition-colors" title="수정">
+                   <i class="fa-solid fa-pen-to-square"></i>
+                 </button>
+                 <button type="button" onclick="confirmDeleteRecord('${r.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="삭제">
+                   <i class="fa-solid fa-trash-can"></i>
+                 </button>
+               </div>
+             </td>`;
 
         return `
           <tr class="hover:bg-amber-50/30 transition-colors whitespace-nowrap">
@@ -4491,14 +4559,14 @@
             <td class="py-3 px-4 sm:px-6 text-center">${ticketHtml}</td>
             <td class="py-3 px-4 sm:px-6 text-stone-500 text-xs hidden md:table-cell">${escapeHtml(r.memo || '-')}</td>
             <td class="py-3 px-4 sm:px-6 text-center text-stone-400 text-xs font-mono hidden lg:table-cell">${escapeHtml(r.timeStr || '-')}</td>
-            <td class="py-3 px-4 sm:px-6 text-center no-print">${actionCell}</td>
+            ${actionCellHtml}
           </tr>
         `;
       }).join('');
     }
 
     function openEditModal(recordId) {
-      if (isReadOnlyCoupleRole()) return;
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole()) return;
       const rec = records.find(r => r.id === recordId);
       if (!rec) return;
 
@@ -4520,7 +4588,7 @@
 
     async function handleEditSubmit(e) {
       e.preventDefault();
-      if (isReadOnlyCoupleRole()) return;
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole()) return;
 
       const id = document.getElementById('editRecordId').value;
       const idx = allRecords.findIndex(r => r.id === id);
@@ -4551,7 +4619,7 @@
     }
 
     function confirmDeleteRecord(recordId) {
-      if (isReadOnlyCoupleRole()) return;
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole()) return;
       const rec = records.find(r => r.id === recordId);
       if (!rec) return;
 
@@ -4573,7 +4641,7 @@
     }
 
     function confirmResetCurrentWeddingData() {
-      if (isReadOnlyCoupleRole() || !activeWedding) return;
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole() || !activeWedding) return;
 
       openConfirmModal({
         title: '현재 예식 내역 전체 초기화',
