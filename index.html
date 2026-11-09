@@ -109,7 +109,7 @@
   <!-- ============================================================== -->
   <!-- 0. 메리담 예식 포털 게이트 (사생활 보호: 프라이빗 전용 비밀번호 입장 게이트) -->
   <!-- ============================================================== -->
-  <div id="gateLockScreen" class="fixed inset-0 z-50 bg-[#FAF6F0] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto">
+  <div id="gateLockScreen" class="fixed inset-0 z-40 bg-[#FAF6F0] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto">
     <div class="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#EADBCA] shadow-elevated text-center space-y-6 relative overflow-hidden my-auto">
       <!-- Subtle Gold Accent Header Line -->
       <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#DFCBB2] via-[#C5A059] to-[#DFCBB2]"></div>
@@ -171,8 +171,8 @@
   <!-- ============================================================== -->
   <!-- 0-2. 새 예식 등록 모달 (원클릭 시간 칩 & 성함 자동 마스킹 프리뷰)    -->
   <!-- ============================================================== -->
-  <div id="newWeddingModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6">
+  <div id="newWeddingModal" class="fixed inset-0 z-[75] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto">
       <div class="flex items-center justify-between pb-4 border-b border-stone-200">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 text-sm">
@@ -365,7 +365,95 @@
   <!-- ============================================================== -->
   <!-- 1. 활성 예식 상단 헤더 (브랜드, 현재 예식 표시, 보안 엑셀 다운로드) -->
   <!-- ============================================================== -->
-  <header class="bg-white/95 backdrop-blur-md border-b border-[#EBDCCB] sticky top-0 z-40 shadow-xs">
+  <header class="bg-white/95 backdrop-blur-md border-b border-[#EBDCCB] sticky top-0 z-30 shadow-xs no-print">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
+      <!-- Left: Brand & Active Wedding Info -->
+      <div class="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-[#EBDCCB] overflow-hidden flex-shrink-0 p-1">
+          <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/48x48/FAF6F0/C5A059?text=MD';">
+        </div>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <h1 class="wedding-title text-lg sm:text-2xl font-bold tracking-tight text-stone-900 whitespace-nowrap">메리담</h1>
+            <span id="headerWeddingBadge" class="px-2 py-0.5 text-[10px] sm:text-xs font-bold bg-[#FAF0E2] text-amber-900 border border-amber-200 rounded-full truncate max-w-[175px] sm:max-w-md md:max-w-xl">
+              예식 대기중
+            </span>
+            <span id="headerRoleBadge" class="hidden px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full whitespace-nowrap"></span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-stone-500 hidden sm:block truncate mt-0.5">프리미엄 축의대 대행 전문 · 스마트 실시간 정산 시스템</p>
+        </div>
+      </div>
+
+      <!-- Right: Cloud Sync Status, Excel/PDF Export & Logout/Exit -->
+      <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+        <!-- Cloud Status Indicator -->
+        <div id="cloudStatusBadge" class="flex items-center space-x-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors whitespace-nowrap">
+          <span id="cloudStatusDot" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="cloudStatusText" class="hidden md:inline">PC·모바일 실시간 연동 중</span>
+          <span id="cloudStatusTextMobile" class="md:hidden">실시간 연동</span>
+        </div>
+
+        <!-- Header Excel Export Button -->
+        <button type="button" onclick="handleExcelDownloadClick()" 
+          class="btn-tactile flex items-center space-x-1 bg-[#2E7D32] hover:bg-[#256629] text-white px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+          title="엑셀 정산 장부 다운로드 (신랑측 / 신부측 / 전체 통합)">
+          <i class="fa-solid fa-file-excel text-xs sm:text-sm"></i>
+          <span class="hidden sm:inline">엑셀 다운로드</span>
+          <span class="sm:hidden">엑셀</span>
+          <i id="headerExcelLockIcon" class="fa-solid fa-download text-[9px] sm:text-[10px] text-green-200 ml-0.5"></i>
+        </button>
+
+        <!-- Header PDF Export Button -->
+        <button type="button" onclick="handlePdfDownloadClick()" 
+          class="btn-tactile flex items-center space-x-1 bg-[#B91C1C] hover:bg-[#991B1B] text-white px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+          title="A4 세로형 PDF 정산 장부 다운로드">
+          <i class="fa-solid fa-file-pdf text-xs sm:text-sm"></i>
+          <span class="hidden sm:inline">PDF 다운로드</span>
+          <span class="sm:hidden">PDF</span>
+        </button>
+
+        <!-- Switch / Exit Wedding Button -->
+        <button type="button" onclick="confirmExitWeddingSession()" 
+          class="btn-tactile flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-xl text-xs font-bold border border-stone-200 transition-all whitespace-nowrap" 
+          title="현재 예식 나가기">
+          <i class="fa-solid fa-arrow-right-from-bracket text-stone-500"></i>
+          <span id="headerExitBtnText" class="hidden lg:inline">예식 나가기</span>
+          <span id="headerExitBtnTextMobile" class="lg:hidden">나가기</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- 2. 상단 탭 네비게이션 (축의 접수·현황 / 접수 내역 / 실시간 통계)    -->
+  <!-- ============================================================== -->
+  <nav class="bg-[#F4ECE1]/80 border-b border-[#E6D7C3] no-print">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div class="flex space-x-1.5 sm:space-x-2 py-2 overflow-x-auto no-scrollbar">
+        <button type="button" onclick="switchTab('home')" id="tabBtnHome" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-base transition-all bg-white text-[#8C6D38] shadow-sm border border-[#DFCBB2] whitespace-nowrap">
+          <i id="tabBtnHomeIcon" class="fa-solid fa-pen-nib text-xs sm:text-sm"></i>
+          <span id="tabBtnHomeText">축의 접수</span>
+        </button>
+
+        <button type="button" onclick="switchTab('list')" id="tabBtnList" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-list-ul text-xs sm:text-sm"></i>
+          <span>접수 내역</span>
+          <span id="tabCountBadge" class="ml-1 px-1.5 py-0.5 text-[11px] font-extrabold bg-amber-100 text-amber-900 rounded-full">0</span>
+        </button>
+
+        <button type="button" onclick="switchTab('stats')" id="tabBtnStats" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie text-xs sm:text-sm"></i>
+          <span>실시간 통계</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================== -->
+  <!-- 3. 메인 컨텐츠 영역                                             -->
+  <!-- ============================================================== -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-5 pb-12">
+
     <!-- TAB 1: 축의 접수 (관리자) / 축의 현황 대시보드 (신랑·신부) -->
     <section id="sectionHome" class="space-y-6">
       
@@ -989,14 +1077,15 @@
         <!-- 모바일 좌우 스크롤 힌트 안내 바 -->
         <div class="sm:hidden flex items-center justify-between px-4 py-2 bg-amber-50/70 border-b border-amber-200/60 text-[11px] text-amber-900 font-medium">
           <span><i class="fa-solid fa-arrows-left-right text-amber-700 mr-1.5"></i>표를 좌우로 넘겨 전체 항목을 확인하세요</span>
-          <span class="text-[10px] text-stone-400 font-mono">가로 스크롤 가능</span>
+          <span class="text-[10px] text-stone-400 font-mono">가로·세로 스크롤 가능</span>
         </div>
 
-        <div class="overflow-x-auto w-full">
+        <!-- 255명 이상 다량 리스트 조회 시에도 페이지가 과도하게 길어지지 않도록 고정 높이 스크롤 및 상단 헤더 고정 적용 -->
+        <div class="overflow-x-auto overflow-y-auto max-h-[62vh] w-full">
           <!-- min-w-[720px]과 whitespace-nowrap을 부여하여 모바일에서 글자가 세로 1글자씩 떨어지지 않고 온전히 표시되도록 보장 -->
           <table class="w-full text-left border-collapse min-w-[720px]">
-            <thead>
-              <tr class="bg-stone-50/80 border-b border-stone-200/80 text-[11px] sm:text-xs font-bold text-stone-500 uppercase tracking-wider whitespace-nowrap">
+            <thead class="sticky top-0 z-10 bg-stone-100/95 backdrop-blur-xs shadow-2xs">
+              <tr class="border-b border-stone-200 text-[11px] sm:text-xs font-bold text-stone-600 uppercase tracking-wider whitespace-nowrap">
                 <th class="py-3.5 px-4 sm:px-6 w-20 text-center">번호</th>
                 <th class="py-3.5 px-4 w-28 text-center">구분</th>
                 <th class="py-3.5 px-4 sm:px-6">축의자 성함</th>
@@ -1169,8 +1258,8 @@
   <!-- ============================================================== -->
   <!-- 0-3. 신랑·신부 로그인 전용 안내 모달 (7일 보관 & 엑셀 다운로드 필독) -->
   <!-- ============================================================== -->
-  <div id="coupleWelcomeModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border-2 border-[#EADBCA] shadow-elevated my-6 text-center space-y-5 relative overflow-hidden">
+  <div id="coupleWelcomeModal" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 border-2 border-[#EADBCA] shadow-elevated my-auto text-center space-y-5 relative">
       <!-- Gold Gradient Accent Line -->
       <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#DFCBB2] via-[#C5A059] to-[#DFCBB2]"></div>
 
@@ -1256,8 +1345,8 @@
   <!-- ============================================================== -->
   <!-- EXCEL EXPORT 3-WAY MODAL (신랑측 / 신부측 / 전체 통합 분리 다운로드) -->
   <!-- ============================================================== -->
-  <div id="excelExportModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6 space-y-5">
+  <div id="excelExportModal" class="fixed inset-0 z-[75] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto space-y-5">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-stone-200">
@@ -1395,8 +1484,8 @@
   <!-- ============================================================== -->
   <!-- PDF EXPORT 3-WAY MODAL (A4 세로형 1장 정산 장부 PDF 다운로드)     -->
   <!-- ============================================================== -->
-  <div id="pdfExportModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto no-print">
-    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6 space-y-5">
+  <div id="pdfExportModal" class="fixed inset-0 z-[75] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto space-y-5">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-4 border-b border-stone-200">
@@ -1534,8 +1623,8 @@
   <!-- ============================================================== -->
   <!-- ADMIN MASTER CENTER MODAL (77985590)                           -->
   <!-- ============================================================== -->
-  <div id="adminCenterModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-6">
+  <div id="adminCenterModal" class="fixed inset-0 z-[65] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto">
       <div class="flex items-center justify-between pb-4 border-b border-stone-200">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 text-sm">
@@ -1543,7 +1632,7 @@
           </div>
           <div>
             <h3 class="text-base sm:text-lg font-bold text-stone-900">메리담 총괄 관리자 센터</h3>
-            <p class="text-xs text-stone-500">전체 예식 관리, 새 예식 개설 및 비밀번호 재설정</p>
+            <p class="text-xs text-stone-500">전체 예식 관리, 새 예식 개설 및 현장 접수대 입장</p>
           </div>
         </div>
         <button onclick="closeAdminCenterModal()" class="text-stone-400 hover:text-stone-600 text-lg">
@@ -1551,7 +1640,17 @@
         </button>
       </div>
 
-      <div class="mt-5 space-y-5">
+      <div class="mt-4 space-y-4">
+        <!-- 관리자 안내 배너 -->
+        <div class="p-3 rounded-2xl bg-stone-900 text-white text-xs flex items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-check text-amber-400"></i>
+            <span>입장할 예식의 <strong>[신랑 접수대] · [신부 접수대] · [통합 입장]</strong>을 선택하세요.</span>
+          </div>
+          <button type="button" onclick="logoutMasterAdminToGate()" class="px-2.5 py-1 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 text-[11px] font-bold whitespace-nowrap">
+            관리자 잠금
+          </button>
+        </div>
         
         <!-- Action Row -->
         <div class="flex items-center justify-between">
@@ -1604,7 +1703,10 @@
 
       </div>
 
-      <div class="mt-6 pt-4 border-t border-stone-100 flex justify-end">
+      <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between gap-2">
+        <button type="button" onclick="enterSelectedWeddingFromAdminFooter()" class="px-4 py-2.5 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white text-xs font-bold shadow-xs">
+          선택된 예식 바로 입장
+        </button>
         <button type="button" onclick="closeAdminCenterModal()" class="px-5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold">
           닫기
         </button>
@@ -1613,8 +1715,8 @@
   </div>
 
   <!-- Edit Record Modal -->
-  <div id="editModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 border border-[#EADBCA] shadow-elevated transform transition-all">
+  <div id="editModal" class="fixed inset-0 z-[75] hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 border border-[#EADBCA] shadow-elevated my-auto transform transition-all">
       <div class="flex items-center justify-between pb-4 border-b border-stone-200">
         <h3 class="text-lg font-bold text-stone-900 flex items-center space-x-2">
           <i class="fa-solid fa-pen-to-square text-[#C5A059]"></i>
@@ -1683,8 +1785,8 @@
   </div>
 
   <!-- Security Password Modal (Master: 77985590) -->
-  <div id="passwordModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-[#EADBCA] shadow-elevated text-center">
+  <div id="passwordModal" class="fixed inset-0 z-[85] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-[#EADBCA] shadow-elevated my-auto text-center">
       <div class="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 bg-amber-100 text-amber-800">
         <i class="fa-solid fa-lock"></i>
       </div>
@@ -1712,8 +1814,8 @@
   </div>
 
   <!-- Confirmation Dialog Modal -->
-  <div id="confirmModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-stone-200 shadow-elevated text-center">
+  <div id="confirmModal" class="fixed inset-0 z-[90] hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 border border-stone-200 shadow-elevated my-auto text-center">
       <div id="confirmModalIcon" class="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-2xl mb-3 bg-amber-100 text-amber-800">
         <i class="fa-solid fa-triangle-exclamation"></i>
       </div>
@@ -1732,7 +1834,7 @@
   </div>
 
   <!-- Toast Notification Container -->
-  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-[100] flex flex-col space-y-2 pointer-events-none"></div>
 
   <!-- A4 세로형(Portrait) 1장 맞춤 인쇄 전용 컨테이너 & 오프스크린 PDF 렌더링 샌드박스 -->
   <div id="printLedgerRoot" class="hidden print-only bg-white"></div>
@@ -2341,22 +2443,34 @@
           if (deletedIdsSet.has(activeWedding.id)) {
             exitWeddingToGate();
           } else {
-            const refreshed = weddings.find(w => w.id === activeWedding.id);
-            if (refreshed) activeWedding = refreshed;
+            const updatedW = weddings.find(w => w.id === activeWedding.id);
+            if (updatedW) activeWedding = updatedW;
             filterRecordsForActiveWedding();
           }
+        } else {
+          checkRestorableSession();
         }
       }
       return changed;
     }
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 3500) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     async function fetchAndApplySnapshotKey(key) {
       if (!key || typeof key !== 'string') return false;
       try {
-        const res = await fetch(`https://bytebin.lucko.me/${encodeURIComponent(key)}`, {
+        const res = await fetchWithTimeout(`https://bytebin.lucko.me/${encodeURIComponent(key)}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
-        });
+        }, 3500);
         if (res.ok) {
           const snap = await res.json();
           globalSyncBlobId = key;
@@ -2370,17 +2484,17 @@
     async function uploadFullSnapshotToCloud() {
       try {
         const snapshotData = getCustomDataSnapshot();
-        const postRes = await fetch('https://bytebin.lucko.me/post', {
+        const postRes = await fetchWithTimeout('https://bytebin.lucko.me/post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(snapshotData)
-        });
+        }, 3500);
         if (postRes.ok) {
           const json = await postRes.json();
           if (json && json.key) {
             globalSyncBlobId = json.key;
             try { localStorage.setItem(LOCAL_BLOB_ID_KEY, globalSyncBlobId); } catch (e) {}
-            await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+            await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
               body: JSON.stringify({
@@ -2389,7 +2503,7 @@
                 sender: CLIENT_INSTANCE_ID,
                 ts: Date.now()
               })
-            });
+            }, 3000);
             return globalSyncBlobId;
           }
         }
@@ -2411,7 +2525,7 @@
       // 2. 개별 예식 정보를 소형 패킷으로 즉시 전송 (4KB 제한 안전 통과)
       for (const w of snap.weddings) {
         try {
-          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
             body: JSON.stringify({
@@ -2420,7 +2534,7 @@
               sender: CLIENT_INSTANCE_ID,
               ts: Date.now()
             })
-          });
+          }, 3000);
         } catch (e) {}
       }
 
@@ -2429,7 +2543,7 @@
       for (let i = 0; i < snap.records.length; i += chunkSize) {
         const chunk = snap.records.slice(i, i + chunkSize);
         try {
-          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
             body: JSON.stringify({
@@ -2439,7 +2553,7 @@
               sender: CLIENT_INSTANCE_ID,
               ts: Date.now()
             })
-          });
+          }, 3000);
         } catch (e) {}
       }
     }
@@ -2454,11 +2568,11 @@
       try {
         const bodyStr = JSON.stringify(payloadWithSender);
         if (bodyStr.length < 3600) {
-          await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
             body: bodyStr
-          });
+          }, 3000);
         }
         setCloudBadgeState('cloud');
       } catch (e) {}
@@ -2501,8 +2615,8 @@
           await fetchAndApplySnapshotKey(globalSyncBlobId);
         }
 
-        // 2. 최근 24시간 내 모든 클라우드 이벤트 히스토리 조회 (유효한 since=24h 파라미터 사용)
-        const streamRes = await fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`);
+        // 2. 최근 24시간 내 모든 클라우드 이벤트 히스토리 조회 (유효한 since=24h 파라미터 사용, 3.5초 타임아웃 적용)
+        const streamRes = await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`, {}, 3500);
         if (streamRes.ok) {
           const text = await streamRes.text();
           const lines = text.trim().split('\n').filter(Boolean);
@@ -2822,7 +2936,7 @@
       const entered = inputEl.value.trim();
       if (!entered) return;
 
-      // 1. 총괄 관리자 마스터 번호(77985590)인 경우 -> 최신 클라우드 목록 동기화 후 관리자 센터 오픈
+      // 1. 총괄 관리자 마스터 번호(77985590)인 경우 -> 네트워크 대기 없이 즉시 관리자 센터 오픈 후 백그라운드 동기화
       if (entered === ADMIN_PASSWORD) {
         isMasterAdminSession = true;
         localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
@@ -2830,9 +2944,9 @@
         sessionStorage.setItem('merrydam_user_role', 'admin');
         inputEl.value = '';
         if (errEl) errEl.classList.add('hidden');
-        await pullLatestFromAllClouds(true);
         openAdminCenterModal();
-        showToast('총괄 관리자 인증이 완료되었습니다. (예식 나가기 후에도 계속 유지됩니다)', 'success');
+        showToast('총괄 관리자 인증이 완료되었습니다. 입장할 예식을 선택해 주세요.', 'success');
+        pullLatestFromAllClouds(true);
         return;
       }
 
@@ -3587,6 +3701,33 @@
       document.getElementById('adminCenterModal')?.classList.add('hidden');
     }
 
+    function enterSelectedWeddingFromAdminFooter() {
+      if (weddings.length === 0) {
+        openNewWeddingModalDirectly();
+        return;
+      }
+      const targetId = adminSelectedWeddingId || weddings[0].id;
+      enterWeddingFromAdmin(targetId, 'all');
+    }
+
+    function logoutMasterAdminToGate() {
+      isMasterAdminSession = false;
+      try { localStorage.removeItem(LOCAL_MASTER_ADMIN_KEY); } catch (e) {}
+      currentUserRole = 'guest';
+      activeWedding = null;
+      records = [];
+      adminDeskSide = 'all';
+      sessionStorage.removeItem('merrydam_active_wedding_id');
+      sessionStorage.removeItem('merrydam_user_role');
+      sessionStorage.removeItem('merrydam_admin_desk_side');
+      document.getElementById('adminCenterModal')?.classList.add('hidden');
+      document.getElementById('gateLockScreen')?.classList.remove('hidden');
+      const passInput = document.getElementById('gateDirectPassInput');
+      if (passInput) passInput.value = '';
+      renderApp();
+      showToast('관리자 모드가 잠금 처리되어 초기 화면으로 이동했습니다.', 'info');
+    }
+
     function enterWeddingFromAdmin(wId, deskMode = 'all') {
       const target = weddings.find(w => w.id === wId);
       if (!target) return;
@@ -3596,7 +3737,7 @@
       adminDeskSide = (deskMode === 'groom' || deskMode === 'bride') ? deskMode : 'all';
       sessionStorage.setItem('merrydam_user_role', 'admin');
       sessionStorage.setItem('merrydam_admin_desk_side', adminDeskSide);
-      closeAdminCenterModal();
+      document.getElementById('adminCenterModal')?.classList.add('hidden');
       enterWedding(target);
       pullLatestFromAllClouds(true);
 
@@ -5722,6 +5863,8 @@
     window.requestAdminAccess = requestAdminAccess;
     window.openAdminCenterModal = openAdminCenterModal;
     window.closeAdminCenterModal = closeAdminCenterModal;
+    window.enterSelectedWeddingFromAdminFooter = enterSelectedWeddingFromAdminFooter;
+    window.logoutMasterAdminToGate = logoutMasterAdminToGate;
     window.selectWeddingForShare = selectWeddingForShare;
     window.setAdminShareSide = setAdminShareSide;
     window.enterWeddingFromAdmin = enterWeddingFromAdmin;
