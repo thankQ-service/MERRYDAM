@@ -366,133 +366,133 @@
   <!-- 1. 활성 예식 상단 헤더 (브랜드, 현재 예식 표시, 보안 엑셀 다운로드) -->
   <!-- ============================================================== -->
   <header class="bg-white/95 backdrop-blur-md border-b border-[#EBDCCB] sticky top-0 z-40 shadow-xs">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 sm:h-20 gap-2">
-        
-        <!-- Brand Identity & Active Wedding Title -->
-        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
-          <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-white border border-[#EBDCCB] shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
-            <img src="https://i.postimg.cc/TYbMY7rd/img.png" alt="메리담 로고" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/48x48/FAF6F0/C5A059?text=MD';">
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center space-x-1.5 sm:space-x-2">
-              <span class="wedding-title text-lg sm:text-2xl font-bold tracking-tight text-[#3A2E25] whitespace-nowrap">메리담</span>
-              <span class="hidden xs:inline-block px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-amber-100 text-amber-900 rounded-full border border-amber-200 whitespace-nowrap">축의대 대행</span>
-              <!-- Role Badge -->
-              <span id="headerRoleBadge" class="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full bg-stone-800 text-white shadow-xs whitespace-nowrap">
-                권한 확인 중
-              </span>
-            </div>
-            <!-- Current Selected Wedding Label (Masked for privacy) -->
-            <div class="flex items-center space-x-1 mt-0.5">
-              <span id="headerWeddingBadge" class="text-[11px] sm:text-xs font-bold text-amber-900 bg-amber-50 px-1.5 sm:px-2 py-0.5 rounded-md border border-amber-200 max-w-[140px] sm:max-w-md truncate block">
-                선택된 예식 로딩 중...
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Header Actions: Change Wedding, Cloud Status, Quick Excel -->
-        <div class="flex items-center space-x-1.5 sm:space-x-3 flex-shrink-0">
-          
-          <!-- 예식 변경 (보안 퇴장: 타 예식 열람 차단 가드) -->
-          <button id="headerExitBtn" type="button" onclick="confirmExitWeddingSession()"
-            class="btn-tactile inline-flex items-center space-x-1 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all whitespace-nowrap" title="안전하게 나가기">
-            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-            <span id="headerExitBtnText" class="hidden sm:inline">예식 나가기</span>
-            <span id="headerExitBtnTextMobile" class="sm:hidden">나가기</span>
-          </button>
-
-          <!-- Cloud Real-time Sync Status Badge -->
-          <div id="cloudStatusBadge" class="flex items-center space-x-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors whitespace-nowrap">
-            <span id="cloudStatusDot" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="cloudStatusText" class="hidden md:inline">실시간 연동 중</span>
-            <span id="cloudStatusTextMobile" class="md:hidden">실시간 연동</span>
-          </div>
-
-          <!-- Quick Excel Button in Header -->
-          <button id="headerExcelDownloadBtn" onclick="handleExcelDownloadClick()" class="btn-tactile inline-flex items-center space-x-1 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#2E7D32] hover:bg-[#256629] text-white shadow-sm shadow-green-900/15 transition-all whitespace-nowrap" title="엑셀 접수대장 다운로드">
-            <i class="fa-solid fa-file-excel text-xs sm:text-sm"></i>
-            <span class="hidden sm:inline">엑셀 다운로드</span>
-            <span class="sm:hidden">엑셀</span>
-            <i id="headerExcelLockIcon" class="fa-solid fa-circle-check text-[9px] sm:text-[10px] text-green-200 ml-0.5"></i>
-          </button>
-
-          <!-- Quick PDF Button in Header -->
-          <button id="headerPdfDownloadBtn" onclick="handlePdfDownloadClick()" class="btn-tactile inline-flex items-center space-x-1 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white shadow-sm shadow-red-900/15 transition-all whitespace-nowrap" title="PDF 접수대장 다운로드 (A4 세로 1장 맞춤)">
-            <i class="fa-solid fa-file-pdf text-xs sm:text-sm"></i>
-            <span class="hidden sm:inline">PDF 다운로드</span>
-            <span class="sm:hidden">PDF</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- ============================================================== -->
-  <!-- 2. 네비게이션 탭 (접수하기 / 접수 내역 / 실시간 통계)                -->
-  <!-- ============================================================== -->
-  <nav class="bg-[#F6EFE5] border-b border-[#E5D7C4] sticky top-16 sm:top-20 z-30 shadow-xs">
-    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-      <div class="flex space-x-1.5 sm:space-x-6 py-1.5 sm:py-2 overflow-x-auto no-scrollbar" role="tablist">
-        
-        <!-- Tab: 접수하기 (관리자: 축의 접수 / 신랑·신부: 축의 현황) -->
-        <button id="tabBtnHome" onclick="switchTab('home')" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-base transition-all bg-white text-[#8C6D38] shadow-sm border border-[#DFCBB2] whitespace-nowrap">
-          <i id="tabBtnHomeIcon" class="fa-solid fa-pen-nib text-xs sm:text-sm"></i>
-          <span id="tabBtnHomeText">축의 접수</span>
-        </button>
-
-        <!-- Tab: 접수 내역 -->
-        <button id="tabBtnList" onclick="switchTab('list')" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent whitespace-nowrap">
-          <i class="fa-solid fa-list-check text-xs sm:text-sm"></i>
-          <span>접수 내역</span>
-          <span id="tabCountBadge" class="ml-0.5 px-1.5 py-0.2 text-[10px] sm:text-xs rounded-full bg-stone-200 text-stone-700 font-bold">0</span>
-        </button>
-
-        <!-- Tab: 실시간 통계 -->
-        <button id="tabBtnStats" onclick="switchTab('stats')" class="btn-tactile flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-base text-stone-600 hover:text-stone-900 hover:bg-white/60 transition-all border border-transparent whitespace-nowrap">
-          <i class="fa-solid fa-chart-pie text-xs sm:text-sm"></i>
-          <span>실시간 통계</span>
-        </button>
-
-      </div>
-    </div>
-  </nav>
-
-  <!-- ============================================================== -->
-  <!-- 3. MAIN CONTENT AREAS                                          -->
-  <!-- ============================================================== -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 flex-grow w-full">
-
-    <!-- TAB 1: 축의 접수 (홈) -->
+    <!-- TAB 1: 축의 접수 (관리자) / 축의 현황 대시보드 (신랑·신부) -->
     <section id="sectionHome" class="space-y-6">
       
-      <!-- 신랑·신부 전용 열람 모드 안내 배너 (신랑·신부 접속 시 표시, 작성 폼 잠금) -->
-      <div id="coupleViewOnlyBanner" class="hidden bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 p-5 rounded-3xl border-2 border-amber-300/80 shadow-card">
-        <div class="flex items-start space-x-3.5">
-          <div id="coupleBannerIconBox" class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-lg shadow-sm">
-            <i class="fa-solid fa-heart"></i>
+      <!-- 신랑·신부 전용 프리미엄 대시보드 헤더 & 핵심 KPI 보드 (신랑·신부 로그인 시에만 표시 / 입력 폼 완전 미노출) -->
+      <div id="coupleViewOnlyBanner" class="hidden space-y-5">
+        <!-- 상단 웨딩 축하 & 원클릭 다운로드 배너 -->
+        <div id="coupleHeroCard" class="bg-gradient-to-r from-[#FAF5EC] via-white to-[#FAF5EC] p-5 sm:p-7 rounded-3xl border-2 border-[#E5D0B1] shadow-card">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span id="coupleBannerBadgeText" class="px-2.5 py-0.5 text-xs font-extrabold bg-amber-100 text-amber-900 rounded-full border border-amber-300">
+                  신랑·신부 전용 실시간 열람 모드
+                </span>
+                <span class="text-xs font-semibold text-emerald-700 flex items-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>현장 접수대 실시간 동기화 중</span>
+                </span>
+              </div>
+              <h2 id="coupleBannerTitleText" class="wedding-title text-xl sm:text-2xl font-bold text-stone-900">
+                신랑·신부님 전용 실시간 축의 현황 리포트
+              </h2>
+              <p id="coupleBannerDescText" class="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                현장 축의금 수납 및 입력은 <strong>메리담 전담 매니저</strong>가 안전하게 진행하고 있습니다. 아래에서 실시간 집계 현황을 확인하시고 <strong>엑셀 및 PDF 정산 장부</strong>를 다운로드하실 수 있습니다.
+              </p>
+            </div>
+
+            <!-- 원클릭 다운로드 & 접수내역 바로가기 버튼 그룹 -->
+            <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
+              <button type="button" onclick="handleExcelDownloadClick()" class="btn-tactile flex-1 sm:flex-initial px-4 py-3 rounded-2xl bg-[#2E7D32] hover:bg-[#256629] text-white text-xs sm:text-sm font-extrabold shadow-sm flex items-center justify-center space-x-2 whitespace-nowrap">
+                <i class="fa-solid fa-file-excel text-base"></i>
+                <span id="coupleBannerExcelBtnText">엑셀 장부 다운로드</span>
+              </button>
+              <button type="button" onclick="handlePdfDownloadClick()" class="btn-tactile flex-1 sm:flex-initial px-4 py-3 rounded-2xl bg-[#B91C1C] hover:bg-[#991B1B] text-white text-xs sm:text-sm font-extrabold shadow-sm flex items-center justify-center space-x-2 whitespace-nowrap">
+                <i class="fa-solid fa-file-pdf text-base"></i>
+                <span id="coupleBannerPdfBtnText">PDF 장부 다운로드</span>
+              </button>
+              <button type="button" onclick="switchTab('list')" class="btn-tactile w-full sm:w-auto px-4 py-3 rounded-2xl bg-stone-900 hover:bg-stone-800 text-amber-300 text-xs sm:text-sm font-extrabold shadow-sm flex items-center justify-center space-x-2 whitespace-nowrap">
+                <i class="fa-solid fa-list-check"></i>
+                <span>전체 접수 명부 보기</span>
+              </button>
+            </div>
           </div>
-          <div class="flex-1 space-y-1">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-sm sm:text-base font-extrabold text-stone-900 flex items-center space-x-1.5">
-                <span id="coupleBannerTitleText">신랑·신부님 전용 실시간 열람 &amp; 엑셀 다운로드 모드</span>
-                <span id="coupleBannerBadgeText" class="px-2 py-0.5 text-[11px] font-bold bg-amber-200/80 text-amber-900 rounded-md">조회 전용</span>
-              </h3>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <button type="button" onclick="handleExcelDownloadClick()" class="btn-tactile px-3.5 py-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#256629] text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 whitespace-nowrap">
-                  <i class="fa-solid fa-file-excel"></i>
-                  <span id="coupleBannerExcelBtnText">실시간 엑셀 다운로드</span>
-                </button>
-                <button type="button" onclick="handlePdfDownloadClick()" class="btn-tactile px-3.5 py-1.5 rounded-xl bg-[#B91C1C] hover:bg-[#991B1B] text-white text-xs font-bold shadow-xs flex items-center space-x-1.5 whitespace-nowrap">
-                  <i class="fa-solid fa-file-pdf"></i>
-                  <span id="coupleBannerPdfBtnText">실시간 PDF 다운로드</span>
-                </button>
+        </div>
+
+        <!-- 신랑·신부 전용 4대 핵심 정산 요약 카드 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- 카드 1: 총 축의금 누적액 -->
+          <div class="bg-white p-5 rounded-3xl border-2 border-[#E8D9C5] shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span id="coupleHeroTotalLabel" class="text-xs font-extrabold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">총 축의금 합계</span>
+              <div class="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-won-sign"></i>
               </div>
             </div>
-            <p id="coupleBannerDescText" class="text-xs text-stone-600 leading-relaxed">
-              본 화면은 <strong>신랑·신부님 전용 실시간 모니터링 화면</strong>입니다. 현장 축의금 수납 및 봉투 번호 발급은 <strong>메리담 전문 축의대 요원이 현장에서 안전하게 실시간 입력</strong>하고 있습니다. 장부의 오기입 방지를 위해 신랑·신부 모드에서는 입력/수정이 제한되며, 상단 <strong>[접수 내역]</strong>, <strong>[실시간 통계]</strong> 및 <strong>[엑셀 다운로드]</strong> 기능을 자유롭게 이용하실 수 있습니다.
-            </p>
+            <div class="mt-3">
+              <div id="coupleHeroTotalAmount" class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">0원</div>
+              <div id="coupleHeroTotalKorean" class="text-xs font-bold text-amber-800 mt-1">일금 영원 정</div>
+            </div>
+          </div>
+
+          <!-- 카드 2: 신랑측 누적 (또는 단독 모드 시 접수 인원) -->
+          <div id="coupleHeroGroomCard" class="bg-white p-5 rounded-3xl border border-blue-200 shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-wedding-groom bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">신랑측 축의금</span>
+              <div class="w-9 h-9 rounded-2xl bg-blue-50 text-wedding-groom flex items-center justify-center text-sm">
+                <i class="fa-solid fa-user-tie"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div id="coupleHeroGroomAmount" class="text-2xl sm:text-3xl font-black text-wedding-groom tracking-tight">0원</div>
+              <div class="text-xs font-semibold text-stone-500 mt-1">신랑측 하객 <strong id="coupleHeroGroomCount" class="text-stone-800">0</strong>명 접수</div>
+            </div>
+          </div>
+
+          <!-- 카드 3: 신부측 누적 (또는 단독 모드 시 평균 축의금) -->
+          <div id="coupleHeroBrideCard" class="bg-white p-5 rounded-3xl border border-rose-200 shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-wedding-bride bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">신부측 축의금</span>
+              <div class="w-9 h-9 rounded-2xl bg-rose-50 text-wedding-bride flex items-center justify-center text-sm">
+                <i class="fa-solid fa-gem"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div id="coupleHeroBrideAmount" class="text-2xl sm:text-3xl font-black text-wedding-bride tracking-tight">0원</div>
+              <div class="text-xs font-semibold text-stone-500 mt-1">신부측 하객 <strong id="coupleHeroBrideCount" class="text-stone-800">0</strong>명 접수</div>
+            </div>
+          </div>
+
+          <!-- 단독 비공개 모드일 때 카드 2·3을 대체하는 전용 하객수 & 평균금액 카드 -->
+          <div id="coupleHeroSingleCountCard" class="hidden bg-white p-5 rounded-3xl border border-stone-200 shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span id="coupleHeroSingleCountBadge" class="text-xs font-extrabold text-stone-700 bg-stone-100 px-2.5 py-1 rounded-lg">접수 하객 수</span>
+              <div class="w-9 h-9 rounded-2xl bg-stone-100 text-stone-700 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div id="coupleHeroSingleCountVal" class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">0명</div>
+              <div class="text-xs font-semibold text-stone-500 mt-1">실시간 누적 접수 인원</div>
+            </div>
+          </div>
+
+          <div id="coupleHeroSingleAvgCard" class="hidden bg-white p-5 rounded-3xl border border-stone-200 shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">1인당 평균 축의금</span>
+              <div class="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-coins"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div id="coupleHeroSingleAvgVal" class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">0원</div>
+              <div class="text-xs font-semibold text-stone-500 mt-1">접수 건수 대비 평균</div>
+            </div>
+          </div>
+
+          <!-- 카드 4: 배부 식권 총 합계 -->
+          <div class="bg-white p-5 rounded-3xl border border-[#EFE2D2] shadow-card flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-stone-700 bg-stone-100 px-2.5 py-1 rounded-lg">식권 배부 현황</span>
+              <div class="w-9 h-9 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-ticket"></i>
+              </div>
+            </div>
+            <div class="mt-3">
+              <div id="coupleHeroTicketsTotal" class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">0장</div>
+              <div id="coupleHeroTicketsDetail" class="text-xs font-bold text-stone-600 mt-1">성인 0장 · 어린이 0장</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3053,11 +3053,12 @@
       const sideBtnBride = document.getElementById('sideBtnBride');
       const sideBtnNeutral = document.getElementById('sideBtnNeutral');
 
-      if (currentUserRole !== 'admin') {
+      // 신랑·신부 열람 모드에서는 접수 입력 폼(#receptionFormCard)과 관리자 전환 바를 무조건 완전히 숨김!
+      if (currentUserRole !== 'admin' || isReadOnlyCoupleRole()) {
         bar?.classList.add('hidden');
         lockNotice?.classList.add('hidden');
         if (formCard) {
-          formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card transition-all';
+          formCard.classList.add('hidden');
         }
         return;
       }
@@ -3236,6 +3237,14 @@
       const statsRightChartCard = document.getElementById('statsRightChartCard');
       const statsRightChartTitle = document.getElementById('statsRightChartTitle');
 
+      const coupleHeroCard = document.getElementById('coupleHeroCard');
+      const coupleHeroTotalLabel = document.getElementById('coupleHeroTotalLabel');
+      const coupleHeroGroomCard = document.getElementById('coupleHeroGroomCard');
+      const coupleHeroBrideCard = document.getElementById('coupleHeroBrideCard');
+      const coupleHeroSingleCountCard = document.getElementById('coupleHeroSingleCountCard');
+      const coupleHeroSingleAvgCard = document.getElementById('coupleHeroSingleAvgCard');
+      const coupleHeroSingleCountBadge = document.getElementById('coupleHeroSingleCountBadge');
+
       const restrictedSide = getRestrictedSide();
 
       if (isReadOnlyCoupleRole()) {
@@ -3305,21 +3314,27 @@
           roleBadge.className = 'px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full bg-blue-600 text-white shadow-xs whitespace-nowrap';
           roleBadge.innerText = '신랑측 전용 열람';
         }
-        if (coupleBanner) coupleBanner.className = 'bg-gradient-to-r from-blue-50 via-stone-50 to-blue-50 p-5 rounded-3xl border-2 border-blue-300/80 shadow-card';
-        if (bannerIconBox) {
-          bannerIconBox.className = 'w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 text-lg shadow-sm';
-          bannerIconBox.innerHTML = '<i class="fa-solid fa-user-tie"></i>';
-        }
-        if (bannerTitle) bannerTitle.innerText = '신랑님 전용 실시간 열람 & 다운로드 모드';
+        if (coupleHeroCard) coupleHeroCard.className = 'bg-gradient-to-r from-blue-50 via-white to-blue-50 p-5 sm:p-7 rounded-3xl border-2 border-blue-300/80 shadow-card';
+        if (bannerTitle) bannerTitle.innerText = `신랑 ${maskName(activeWedding?.groomName)}님 전용 실시간 축의 현황 리포트`;
         if (bannerBadge) {
-          bannerBadge.className = 'px-2 py-0.5 text-[11px] font-bold bg-blue-100 text-blue-900 rounded-md';
-          bannerBadge.innerText = '신랑측 단독 비공개';
+          bannerBadge.className = 'px-2.5 py-0.5 text-xs font-extrabold bg-blue-100 text-blue-900 rounded-full border border-blue-300';
+          bannerBadge.innerText = '신랑측 단독 비공개 모드';
         }
         if (bannerExcelText) bannerExcelText.innerText = '신랑측 엑셀 다운로드';
         if (bannerPdfText) bannerPdfText.innerText = '신랑측 PDF 다운로드';
         if (bannerDesc) {
-          bannerDesc.innerHTML = '본 화면은 <strong>신랑님 전용 단독 모니터링 화면</strong>입니다. 상호 비공개 설정에 따라 <strong>신랑측 축의 내역·통계·엑셀·PDF만 단독으로 표시</strong>되며 통합 조회가 제한됩니다. 현장 수납 및 입력은 메리담 전문 요원이 실시간으로 진행하고 있습니다.';
+          bannerDesc.innerHTML = '상호 비공개 설정에 따라 <strong>신랑측 축의 내역·통계·엑셀·PDF만 단독으로 표시</strong>됩니다. 현장 수납 및 입력은 메리담 전문 요원이 실시간으로 진행하고 있습니다.';
         }
+
+        if (coupleHeroTotalLabel) {
+          coupleHeroTotalLabel.className = 'text-xs font-extrabold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200';
+          coupleHeroTotalLabel.innerText = '신랑측 축의금 합계';
+        }
+        coupleHeroGroomCard?.classList.add('hidden');
+        coupleHeroBrideCard?.classList.add('hidden');
+        coupleHeroSingleCountCard?.classList.remove('hidden');
+        coupleHeroSingleAvgCard?.classList.remove('hidden');
+        if (coupleHeroSingleCountBadge) coupleHeroSingleCountBadge.innerText = '신랑측 접수 하객 수';
 
         if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-1 gap-2.5';
         sideBtnGroom?.classList.remove('hidden');
@@ -3328,7 +3343,7 @@
 
         summaryCombinedBox?.classList.add('hidden');
         summarySingleBox?.classList.remove('hidden');
-        if (summaryCardTitle) summaryCardTitle.innerText = '신랑측 전용 축의 현황';
+        if (summaryCardTitle) summaryCardTitle.innerText = '신랑측 전용 축의 요약';
         if (summaryCountLabel) summaryCountLabel.innerText = '신랑측 접수 인원';
         if (homeSyncDesc) homeSyncDesc.innerText = '신랑·신부 별도 관리 옵션이 적용되어 신랑측 데이터만 철저히 분리 열람됩니다.';
 
@@ -3353,21 +3368,27 @@
           roleBadge.className = 'px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full bg-rose-600 text-white shadow-xs whitespace-nowrap';
           roleBadge.innerText = '신부측 전용 열람';
         }
-        if (coupleBanner) coupleBanner.className = 'bg-gradient-to-r from-rose-50 via-stone-50 to-rose-50 p-5 rounded-3xl border-2 border-rose-300/80 shadow-card';
-        if (bannerIconBox) {
-          bannerIconBox.className = 'w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 text-lg shadow-sm';
-          bannerIconBox.innerHTML = '<i class="fa-solid fa-gem"></i>';
-        }
-        if (bannerTitle) bannerTitle.innerText = '신부님 전용 실시간 열람 & 다운로드 모드';
+        if (coupleHeroCard) coupleHeroCard.className = 'bg-gradient-to-r from-rose-50 via-white to-rose-50 p-5 sm:p-7 rounded-3xl border-2 border-rose-300/80 shadow-card';
+        if (bannerTitle) bannerTitle.innerText = `신부 ${maskName(activeWedding?.brideName)}님 전용 실시간 축의 현황 리포트`;
         if (bannerBadge) {
-          bannerBadge.className = 'px-2 py-0.5 text-[11px] font-bold bg-rose-100 text-rose-900 rounded-md';
-          bannerBadge.innerText = '신부측 단독 비공개';
+          bannerBadge.className = 'px-2.5 py-0.5 text-xs font-extrabold bg-rose-100 text-rose-900 rounded-full border border-rose-300';
+          bannerBadge.innerText = '신부측 단독 비공개 모드';
         }
         if (bannerExcelText) bannerExcelText.innerText = '신부측 엑셀 다운로드';
         if (bannerPdfText) bannerPdfText.innerText = '신부측 PDF 다운로드';
         if (bannerDesc) {
-          bannerDesc.innerHTML = '본 화면은 <strong>신부님 전용 단독 모니터링 화면</strong>입니다. 상호 비공개 설정에 따라 <strong>신부측 축의 내역·통계·엑셀·PDF만 단독으로 표시</strong>되며 통합 조회가 제한됩니다. 현장 수납 및 입력은 메리담 전문 요원이 실시간으로 진행하고 있습니다.';
+          bannerDesc.innerHTML = '상호 비공개 설정에 따라 <strong>신부측 축의 내역·통계·엑셀·PDF만 단독으로 표시</strong>됩니다. 현장 수납 및 입력은 메리담 전문 요원이 실시간으로 진행하고 있습니다.';
         }
+
+        if (coupleHeroTotalLabel) {
+          coupleHeroTotalLabel.className = 'text-xs font-extrabold text-rose-900 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200';
+          coupleHeroTotalLabel.innerText = '신부측 축의금 합계';
+        }
+        coupleHeroGroomCard?.classList.add('hidden');
+        coupleHeroBrideCard?.classList.add('hidden');
+        coupleHeroSingleCountCard?.classList.remove('hidden');
+        coupleHeroSingleAvgCard?.classList.remove('hidden');
+        if (coupleHeroSingleCountBadge) coupleHeroSingleCountBadge.innerText = '신부측 접수 하객 수';
 
         if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-1 gap-2.5';
         sideBtnGroom?.classList.add('hidden');
@@ -3376,7 +3397,7 @@
 
         summaryCombinedBox?.classList.add('hidden');
         summarySingleBox?.classList.remove('hidden');
-        if (summaryCardTitle) summaryCardTitle.innerText = '신부측 전용 축의 현황';
+        if (summaryCardTitle) summaryCardTitle.innerText = '신부측 전용 축의 요약';
         if (summaryCountLabel) summaryCountLabel.innerText = '신부측 접수 인원';
         if (homeSyncDesc) homeSyncDesc.innerText = '신랑·신부 별도 관리 옵션이 적용되어 신부측 데이터만 철저히 분리 열람됩니다.';
 
@@ -3402,21 +3423,25 @@
             roleBadge.className = 'px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-full bg-amber-500 text-white shadow-xs whitespace-nowrap';
             roleBadge.innerText = '신랑·신부 열람용';
           }
-          if (coupleBanner) coupleBanner.className = 'bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 p-5 rounded-3xl border-2 border-amber-300/80 shadow-card';
-          if (bannerIconBox) {
-            bannerIconBox.className = 'w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-lg shadow-sm';
-            bannerIconBox.innerHTML = '<i class="fa-solid fa-heart"></i>';
-          }
-          if (bannerTitle) bannerTitle.innerText = '신랑·신부님 전용 실시간 열람 & 엑셀 다운로드 모드';
+          if (coupleHeroCard) coupleHeroCard.className = 'bg-gradient-to-r from-[#FAF5EC] via-white to-[#FAF5EC] p-5 sm:p-7 rounded-3xl border-2 border-[#E5D0B1] shadow-card';
+          if (bannerTitle) bannerTitle.innerText = `신랑 ${maskName(activeWedding?.groomName)} ♥ 신부 ${maskName(activeWedding?.brideName)} 실시간 축의 현황 리포트`;
           if (bannerBadge) {
-            bannerBadge.className = 'px-2 py-0.5 text-[11px] font-bold bg-amber-200/80 text-amber-900 rounded-md';
-            bannerBadge.innerText = '조회 전용';
+            bannerBadge.className = 'px-2.5 py-0.5 text-xs font-extrabold bg-amber-100 text-amber-900 rounded-full border border-amber-300';
+            bannerBadge.innerText = '신랑·신부 전용 실시간 열람 모드';
           }
-          if (bannerExcelText) bannerExcelText.innerText = '실시간 엑셀 다운로드';
-          if (bannerPdfText) bannerPdfText.innerText = '실시간 PDF 다운로드';
+          if (bannerExcelText) bannerExcelText.innerText = '엑셀 장부 다운로드';
+          if (bannerPdfText) bannerPdfText.innerText = 'PDF 장부 다운로드';
           if (bannerDesc) {
-            bannerDesc.innerHTML = '본 화면은 <strong>신랑·신부님 전용 실시간 모니터링 화면</strong>입니다. 현장 축의금 수납 및 봉투 번호 발급은 <strong>메리담 전문 축의대 요원이 현장에서 안전하게 실시간 입력</strong>하고 있습니다. 장부의 오기입 방지를 위해 신랑·신부 모드에서는 입력/수정이 제한되며, 상단 <strong>[접수 내역]</strong>, <strong>[실시간 통계]</strong> 및 <strong>[엑셀 다운로드]</strong> 기능을 자유롭게 이용하실 수 있습니다.';
+            bannerDesc.innerHTML = '현장 축의금 수납 및 입력은 <strong>메리담 전담 매니저</strong>가 안전하게 진행하고 있습니다. 아래에서 실시간 집계 현황을 확인하시고 <strong>엑셀 및 PDF 정산 장부</strong>를 다운로드하실 수 있습니다.';
           }
+          if (coupleHeroTotalLabel) {
+            coupleHeroTotalLabel.className = 'text-xs font-extrabold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200';
+            coupleHeroTotalLabel.innerText = '총 축의금 합계';
+          }
+          coupleHeroGroomCard?.classList.remove('hidden');
+          coupleHeroBrideCard?.classList.remove('hidden');
+          coupleHeroSingleCountCard?.classList.add('hidden');
+          coupleHeroSingleAvgCard?.classList.add('hidden');
         }
 
         if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-3 gap-2.5 sm:gap-4';
@@ -3528,7 +3553,8 @@
     }
 
     function requestAdminAccess() {
-      if (isMasterAdminSession) {
+      // 신랑·신부 열람 모드 중에는 관리자 센터 호출 시 반드시 마스터 비밀번호(77985590) 재확인
+      if (isMasterAdminSession && currentUserRole === 'admin') {
         openAdminCenterModal();
       } else {
         requestPasswordAndExecute('총괄 관리자 인증', () => {
@@ -3539,6 +3565,7 @@
     }
 
     function openAdminCenterModal() {
+      if (!isMasterAdminSession || currentUserRole !== 'admin') return;
       if (!adminSelectedWeddingId && weddings.length > 0) {
         adminSelectedWeddingId = activeWedding ? activeWedding.id : weddings[0].id;
       }
@@ -4354,6 +4381,16 @@
       setTxt('kpiTotalTickets', `${totalTickets.toLocaleString()}장`);
       setTxt('kpiTicketBreakdown', `성인: ${totalAdultTickets}장 | 어린이: ${totalChildTickets}장`);
 
+      // 신랑·신부 전용 상단 대시보드 KPI 실시간 반영
+      setTxt('coupleHeroTotalAmount', `${totalAmount.toLocaleString()}원`);
+      setTxt('coupleHeroTotalKorean', `일금 ${numberToKorean(totalAmount)} 정`);
+      setTxt('coupleHeroGroomAmount', `${groomAmount.toLocaleString()}원`);
+      setTxt('coupleHeroGroomCount', String(groomCount));
+      setTxt('coupleHeroBrideAmount', `${brideAmount.toLocaleString()}원`);
+      setTxt('coupleHeroBrideCount', String(brideCount));
+      setTxt('coupleHeroTicketsTotal', `총 ${totalTickets.toLocaleString()}장`);
+      setTxt('coupleHeroTicketsDetail', `성인 ${totalAdultTickets}장 · 어린이 ${totalChildTickets}장`);
+
       const restrictedSide = getRestrictedSide();
       const singleDot = document.getElementById('summarySingleDot');
       const singleLabel = document.getElementById('summarySingleLabel');
@@ -4375,6 +4412,8 @@
         if (singleAvgLabel) singleAvgLabel.innerText = '신랑측 평균 축의금';
         const gAvg = groomCount > 0 ? Math.round(groomAmount / groomCount) : 0;
         if (singleAvgVal) singleAvgVal.innerText = gAvg.toLocaleString() + '원';
+        setTxt('coupleHeroSingleCountVal', `${groomCount}명`);
+        setTxt('coupleHeroSingleAvgVal', `${gAvg.toLocaleString()}원`);
       } else if (restrictedSide === 'bride') {
         if (singleDot) singleDot.className = 'w-3 h-3 rounded-full bg-wedding-bride inline-block';
         if (singleLabel) {
@@ -4387,6 +4426,8 @@
         if (singleAvgLabel) singleAvgLabel.innerText = '신부측 평균 축의금';
         const bAvg = brideCount > 0 ? Math.round(brideAmount / brideCount) : 0;
         if (singleAvgVal) singleAvgVal.innerText = bAvg.toLocaleString() + '원';
+        setTxt('coupleHeroSingleCountVal', `${brideCount}명`);
+        setTxt('coupleHeroSingleAvgVal', `${bAvg.toLocaleString()}원`);
       }
 
       setTxt('filterCount_all', `(${totalCount})`);
