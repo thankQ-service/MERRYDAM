@@ -230,14 +230,14 @@
             class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
         </div>
 
-        <!-- 신랑 & 신부 성함 (전형민 입력 시 자동으로 전OO 마스킹 표기) -->
+        <!-- 신랑 & 신부 성함 (실명 그대로 표기) -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="block text-xs font-bold text-stone-700">
                 신랑 성함 <span class="text-rose-500">*</span>
               </label>
-              <span id="groomMaskPreview" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">전OO</span>
+              <span id="groomMaskPreview" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">전형민</span>
             </div>
             <input type="text" id="newWeddingGroom" required placeholder="예: 전형민" oninput="updateGroomMaskPreview(this.value)"
               class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
@@ -247,28 +247,28 @@
               <label class="block text-xs font-bold text-stone-700">
                 신부 성함 <span class="text-rose-500">*</span>
               </label>
-              <span id="brideMaskPreview" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">최OO</span>
+              <span id="brideMaskPreview" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">최윤정</span>
             </div>
             <input type="text" id="newWeddingBride" required placeholder="예: 최윤정" oninput="updateBrideMaskPreview(this.value)"
               class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
           </div>
         </div>
         <p class="text-[11px] text-stone-500 -mt-2">
-          <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>성함을 정자로 입력하면 포털 리스트 및 장부 표기 시 자동으로 <strong>첫 글자 외 'OO' 마스킹</strong>되어 개인정보가 철저히 보호됩니다.
+          <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>첫 화면은 비밀번호 잠금으로 타인에게 노출되지 않으며, 입장 후 장부 및 헤더에는 <strong>신랑·신부님의 실제 성함</strong>이 정확히 표기됩니다.
         </p>
 
-        <!-- 웨딩홀 및 장소 (사생활 보호 자동 마스킹 지원) -->
+        <!-- 웨딩홀 및 장소 -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="block text-xs font-bold text-stone-700">
               예식장 / 웨딩홀 (선택)
             </label>
-            <span id="venueMaskPreview" class="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">메OO 웨딩홀 1층 그랜드볼룸</span>
+            <span id="venueMaskPreview" class="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">메리담 웨딩홀 1층 그랜드볼룸</span>
           </div>
           <input type="text" id="newWeddingVenue" placeholder="예: 메리담 웨딩홀 1층 그랜드볼룸" oninput="updateVenueMaskPreview(this.value)"
             class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
           <p class="text-[11px] text-stone-500 mt-1">
-            <i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i>웨딩홀 명칭도 사생활 보호를 위해 첫 어절이 <strong>'메OO 웨딩홀...'</strong> 형태로 자동 안심 마스킹됩니다.
+            <i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i>웨딩홀 명칭도 장부 및 공유 안내 문구에 입력하신 그대로 정확하게 표기됩니다.
           </p>
         </div>
 
@@ -497,10 +497,57 @@
         </div>
       </div>
 
+      <!-- 관리자 전용: 신랑측 / 신부측 / 통합 접수 페이지 분리 전환 바 (입력 실수 원천 방지) -->
+      <div id="adminDeskModeBar" class="hidden bg-white p-3.5 sm:p-4 rounded-3xl border-2 border-[#E8D9C5] shadow-sm">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div class="flex items-center space-x-2.5">
+            <div id="adminDeskModeIcon" class="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm flex-shrink-0">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <div>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-xs sm:text-sm font-extrabold text-stone-900">관리자 접수 페이지 구분 선택</span>
+                <span id="adminDeskCurrentBadge" class="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-100 text-amber-900 border border-amber-200">통합 접수 페이지</span>
+              </div>
+              <p class="text-[11px] text-stone-500 mt-0.5">신랑측 또는 신부측 전용 페이지로 전환하면 해당 측으로만 고정되어 교차 입력 실수를 100% 방지합니다.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/80">
+            <button type="button" id="adminDeskBtn_groom" onclick="setAdminDeskSide('groom')"
+              class="btn-tactile py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 text-stone-600 hover:text-stone-900">
+              <i class="fa-solid fa-user-tie text-blue-600"></i>
+              <span>신랑측 전용 등록</span>
+            </button>
+            <button type="button" id="adminDeskBtn_bride" onclick="setAdminDeskSide('bride')"
+              class="btn-tactile py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 text-stone-600 hover:text-stone-900">
+              <i class="fa-solid fa-gem text-rose-500"></i>
+              <span>신부측 전용 등록</span>
+            </button>
+            <button type="button" id="adminDeskBtn_all" onclick="setAdminDeskSide('all')"
+              class="btn-tactile py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 bg-white text-stone-900 shadow-xs">
+              <i class="fa-solid fa-layer-group text-amber-600"></i>
+              <span>통합 등록</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- Left: Input Form Card (8 Columns) -->
         <div id="receptionFormCard" class="lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card transition-all">
+
+          <!-- 관리자 전용: 신랑측 전용 / 신부측 전용 접수 페이지 상단 고정 알림 바 -->
+          <div id="adminDeskLockNotice" class="hidden mb-4 p-3 rounded-2xl border flex items-center justify-between">
+            <div class="flex items-center space-x-2 text-xs sm:text-sm font-extrabold">
+              <i id="adminDeskLockIcon" class="fa-solid fa-lock"></i>
+              <span id="adminDeskLockText">현재 [신랑측 전용 접수 페이지]입니다. 모든 입력이 신랑측으로 안전하게 자동 등록됩니다.</span>
+            </div>
+            <button type="button" onclick="setAdminDeskSide('all')" class="text-[11px] font-bold underline opacity-80 hover:opacity-100 whitespace-nowrap ml-2">
+              통합 모드로 전환
+            </button>
+          </div>
           
           <!-- Top Row: Envelope Number & Quick Info -->
           <div class="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[#F2E7D9]">
@@ -1722,11 +1769,13 @@
     const LOCAL_WEDDINGS_KEY = "merrydam_weddings_store_v3";
     const LOCAL_RECORDS_KEY = "merrydam_records_store_v3";
     const LOCAL_DELETED_VIRTUAL_KEY = "merrydam_deleted_virtual_v3";
+    const LOCAL_DELETED_IDS_KEY = "merrydam_deleted_ids_v3";
 
     let db = null;
     let auth = null;
     let currentUser = null;
     let isCloudActive = false;
+    let cloudAuthPromise = null;
     let unsubscribeWeddings = null;
     let unsubscribeRecords = null;
 
@@ -1742,6 +1791,7 @@
     let pendingAuthCallback = null;
     let isMasterAdminSession = false; // 총괄 관리자(77985590) 인증 세션 여부
     let currentUserRole = 'guest';    // 'admin' | 'couple' | 'couple_groom' | 'couple_bride' | 'guest'
+    let adminDeskSide = 'all';        // 관리자 접수대 페이지 구분 ('all' | 'groom' | 'bride')
     let adminSelectedWeddingId = null;
     let adminShareSide = 'groom';     // 별도 관리 예식 선택 시 공유 문구 탭 ('groom' | 'bride')
 
@@ -1749,6 +1799,15 @@
     let amountDistChartInstance = null;
     let cachedVirtualTestRecords = null;
     let isVirtualTestDeleted = localStorage.getItem(LOCAL_DELETED_VIRTUAL_KEY) === 'true';
+    let deletedIdsSet = new Set(JSON.parse(localStorage.getItem(LOCAL_DELETED_IDS_KEY) || '[]'));
+
+    function markIdDeleted(id) {
+      if (!id) return;
+      deletedIdsSet.add(id);
+      try {
+        localStorage.setItem(LOCAL_DELETED_IDS_KEY, JSON.stringify(Array.from(deletedIdsSet)));
+      } catch (e) {}
+    }
 
     // ==============================================================
     // 권한 및 유틸리티 헬퍼 함수
@@ -1760,6 +1819,13 @@
     function getRestrictedSide() {
       if (currentUserRole === 'couple_groom') return 'groom';
       if (currentUserRole === 'couple_bride') return 'bride';
+      return null;
+    }
+
+    function getEffectiveAdminSide() {
+      if (currentUserRole === 'admin' && (adminDeskSide === 'groom' || adminDeskSide === 'bride')) {
+        return adminDeskSide;
+      }
       return null;
     }
 
@@ -1776,19 +1842,13 @@
     function maskName(name) {
       const clean = String(name || '').trim();
       if (!clean) return '미기재';
-      if (clean.includes('OO')) return clean;
-      return clean.charAt(0) + 'OO';
+      return clean;
     }
 
     function maskVenue(venue) {
       const clean = String(venue || '').trim();
       if (!clean) return '';
-      if (clean.includes('OO')) return clean;
-      const parts = clean.split(/\s+/);
-      if (parts[0].length >= 2) {
-        parts[0] = parts[0].charAt(0) + 'OO';
-      }
-      return parts.join(' ');
+      return clean;
     }
 
     function numberToKorean(number) {
@@ -2133,6 +2193,51 @@
       setCloudBadgeState('local');
     }
 
+    async function syncLocalDataToCloud() {
+      if (!db || !currentUser) return;
+      try {
+        const customWeddings = weddings.filter(w => w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(w.id));
+        for (const w of customWeddings) {
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'weddings', w.id), w);
+        }
+
+        const customRecords = allRecords.filter(r => !String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_') && !deletedIdsSet.has(r.id));
+        for (const r of customRecords) {
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cash_gifts', r.id), r);
+        }
+      } catch (e) {
+        console.warn('Initial local-to-cloud sync note:', e);
+      }
+    }
+
+    async function writeCloudDoc(collectionName, docId, dataObj) {
+      try {
+        if (cloudAuthPromise) {
+          await cloudAuthPromise;
+        }
+        if (db && currentUser) {
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId), dataObj);
+          isCloudActive = true;
+          setCloudBadgeState('cloud');
+        }
+      } catch (err) {
+        console.warn(`Cloud write (${collectionName}/${docId}) note:`, err);
+      }
+    }
+
+    async function deleteCloudDoc(collectionName, docId) {
+      try {
+        if (cloudAuthPromise) {
+          await cloudAuthPromise;
+        }
+        if (db && currentUser) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId));
+        }
+      } catch (err) {
+        console.warn(`Cloud delete (${collectionName}/${docId}) note:`, err);
+      }
+    }
+
     async function initCloudConnection() {
       if (typeof __firebase_config === 'undefined' || !__firebase_config) {
         fallbackLocalMode();
@@ -2145,18 +2250,29 @@
         auth = getAuth(app);
         db = getFirestore(app);
 
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          const cred = await signInWithCustomToken(auth, __initial_auth_token);
-          currentUser = cred.user;
-        } else {
-          const cred = await signInAnonymously(auth);
-          currentUser = cred.user;
-        }
+        cloudAuthPromise = (async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            const cred = await signInWithCustomToken(auth, __initial_auth_token);
+            currentUser = cred.user;
+          } else {
+            const cred = await signInAnonymously(auth);
+            currentUser = cred.user;
+          }
+          return currentUser;
+        })();
+
+        await cloudAuthPromise;
 
         if (!currentUser) {
           fallbackLocalMode();
           return;
         }
+
+        isCloudActive = true;
+        setCloudBadgeState('cloud');
+
+        // 로컬에 먼저 등록되어 있던 예식 및 접수 내역을 클라우드로 즉시 동기화 업로드
+        await syncLocalDataToCloud();
 
         const weddingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'weddings');
         const recordsCol = collection(db, 'artifacts', appId, 'public', 'data', 'cash_gifts');
@@ -2167,12 +2283,26 @@
 
           const { seededWeddings } = getSeededDefaults();
           const map = new Map();
-          seededWeddings.forEach(w => map.set(w.id, w));
+          seededWeddings.forEach(w => {
+            if (!deletedIdsSet.has(w.id)) map.set(w.id, w);
+          });
 
+          const cloudIds = new Set();
           snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (data && data.id) {
+            if (data && data.id && !deletedIdsSet.has(data.id)) {
               map.set(data.id, data);
+              cloudIds.add(data.id);
+            }
+          });
+
+          // 현재 기기에만 있고 아직 클라우드에 올라가지 않은 예식 보존 및 업로드
+          weddings.forEach(localW => {
+            if (localW.id !== VIRTUAL_TEST_WEDDING_ID && localW.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(localW.id)) {
+              if (!cloudIds.has(localW.id)) {
+                map.set(localW.id, localW);
+                writeCloudDoc('weddings', localW.id, localW);
+              }
             }
           });
 
@@ -2199,12 +2329,26 @@
 
           const { seededRecords } = getSeededDefaults();
           const map = new Map();
-          seededRecords.forEach(r => map.set(r.id, r));
+          seededRecords.forEach(r => {
+            if (!deletedIdsSet.has(r.id)) map.set(r.id, r);
+          });
 
+          const cloudRecIds = new Set();
           snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (data && data.id) {
+            if (data && data.id && !deletedIdsSet.has(data.id)) {
               map.set(data.id, data);
+              cloudRecIds.add(data.id);
+            }
+          });
+
+          // 현재 기기에만 있고 클라우드에 아직 반영되지 않은 접수 내역 보존 및 자동 업로드
+          allRecords.forEach(localR => {
+            if (!String(localR.id).startsWith('vrec_') && !String(localR.id).startsWith('def_rec_') && !deletedIdsSet.has(localR.id)) {
+              if (!cloudRecIds.has(localR.id)) {
+                map.set(localR.id, localR);
+                writeCloudDoc('cash_gifts', localR.id, localR);
+              }
             }
           });
 
@@ -2387,14 +2531,132 @@
       records = [];
       isMasterAdminSession = false;
       currentUserRole = 'guest';
+      adminDeskSide = 'all';
       sessionStorage.removeItem('merrydam_active_wedding_id');
       sessionStorage.removeItem('merrydam_user_role');
+      sessionStorage.removeItem('merrydam_admin_desk_side');
 
       document.getElementById('gateLockScreen')?.classList.remove('hidden');
       const passInput = document.getElementById('gateDirectPassInput');
       if (passInput) passInput.value = '';
       document.getElementById('gateDirectPassErrorMsg')?.classList.add('hidden');
       renderApp();
+    }
+
+    // ==============================================================
+    // 관리자 전용: 신랑측 전용 / 신부측 전용 / 통합 접수 페이지 전환 함수
+    // ==============================================================
+    function setAdminDeskSide(sideMode) {
+      if (currentUserRole !== 'admin') return;
+      adminDeskSide = (sideMode === 'groom' || sideMode === 'bride') ? sideMode : 'all';
+      sessionStorage.setItem('merrydam_admin_desk_side', adminDeskSide);
+
+      applyAdminDeskModeUI();
+
+      if (adminDeskSide === 'groom') {
+        selectSide('groom');
+        setListFilter('groom');
+      } else if (adminDeskSide === 'bride') {
+        selectSide('bride');
+        setListFilter('bride');
+      } else {
+        selectSide('groom');
+        setListFilter('all');
+      }
+
+      renderSummaryAndRecent();
+      renderListTable();
+    }
+
+    function applyAdminDeskModeUI() {
+      const bar = document.getElementById('adminDeskModeBar');
+      const lockNotice = document.getElementById('adminDeskLockNotice');
+      const lockIcon = document.getElementById('adminDeskLockIcon');
+      const lockText = document.getElementById('adminDeskLockText');
+      const currentBadge = document.getElementById('adminDeskCurrentBadge');
+      const formCard = document.getElementById('receptionFormCard');
+
+      const btnGroom = document.getElementById('adminDeskBtn_groom');
+      const btnBride = document.getElementById('adminDeskBtn_bride');
+      const btnAll = document.getElementById('adminDeskBtn_all');
+
+      const sideBtnsGrid = document.getElementById('sideBtnsGrid');
+      const sideBtnGroom = document.getElementById('sideBtnGroom');
+      const sideBtnBride = document.getElementById('sideBtnBride');
+      const sideBtnNeutral = document.getElementById('sideBtnNeutral');
+
+      if (currentUserRole !== 'admin') {
+        bar?.classList.add('hidden');
+        lockNotice?.classList.add('hidden');
+        if (formCard) {
+          formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card transition-all';
+        }
+        return;
+      }
+
+      bar?.classList.remove('hidden');
+
+      const inactiveClass = 'btn-tactile py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 text-stone-600 hover:text-stone-900';
+      if (btnGroom) btnGroom.className = inactiveClass;
+      if (btnBride) btnBride.className = inactiveClass;
+      if (btnAll) btnAll.className = inactiveClass;
+
+      const groomName = maskName(activeWedding?.groomName);
+      const brideName = maskName(activeWedding?.brideName);
+
+      if (adminDeskSide === 'groom') {
+        if (btnGroom) btnGroom.className = 'btn-tactile py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 bg-blue-600 text-white shadow-xs';
+        if (currentBadge) {
+          currentBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-blue-600 text-white';
+          currentBadge.innerText = `신랑 ${groomName}측 전용 접수 페이지`;
+        }
+        if (lockNotice) {
+          lockNotice.className = 'mb-4 p-3.5 rounded-2xl border-2 border-blue-300 bg-blue-50/90 text-blue-900 flex items-center justify-between';
+        }
+        if (lockIcon) lockIcon.className = 'fa-solid fa-user-tie text-blue-700';
+        if (lockText) lockText.innerText = `[신랑 ${groomName}측 전용 등록 페이지] — 신부측 버튼이 잠금 처리되어 실수 없이 신랑측으로만 안전하게 등록됩니다.`;
+        if (formCard) {
+          formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border-2 border-blue-400 shadow-card transition-all ring-4 ring-blue-50';
+        }
+        if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-1 gap-2.5';
+        sideBtnGroom?.classList.remove('hidden');
+        sideBtnBride?.classList.add('hidden');
+        sideBtnNeutral?.classList.add('hidden');
+
+      } else if (adminDeskSide === 'bride') {
+        if (btnBride) btnBride.className = 'btn-tactile py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 bg-rose-600 text-white shadow-xs';
+        if (currentBadge) {
+          currentBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-600 text-white';
+          currentBadge.innerText = `신부 ${brideName}측 전용 접수 페이지`;
+        }
+        if (lockNotice) {
+          lockNotice.className = 'mb-4 p-3.5 rounded-2xl border-2 border-rose-300 bg-rose-50/90 text-rose-900 flex items-center justify-between';
+        }
+        if (lockIcon) lockIcon.className = 'fa-solid fa-gem text-rose-600';
+        if (lockText) lockText.innerText = `[신부 ${brideName}측 전용 등록 페이지] — 신랑측 버튼이 잠금 처리되어 실수 없이 신부측으로만 안전하게 등록됩니다.`;
+        if (formCard) {
+          formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border-2 border-rose-400 shadow-card transition-all ring-4 ring-rose-50';
+        }
+        if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-1 gap-2.5';
+        sideBtnGroom?.classList.add('hidden');
+        sideBtnBride?.classList.remove('hidden');
+        sideBtnNeutral?.classList.add('hidden');
+
+      } else {
+        if (btnAll) btnAll.className = 'btn-tactile py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 bg-white text-stone-900 shadow-xs';
+        if (currentBadge) {
+          currentBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-100 text-amber-900 border border-amber-200';
+          currentBadge.innerText = '통합 접수 페이지';
+        }
+        lockNotice?.classList.add('hidden');
+        if (formCard) {
+          formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border border-[#EFE2D2] shadow-card transition-all';
+        }
+        if (sideBtnsGrid) sideBtnsGrid.className = 'grid grid-cols-3 gap-2.5 sm:gap-4';
+        sideBtnGroom?.classList.remove('hidden');
+        sideBtnBride?.classList.remove('hidden');
+        sideBtnNeutral?.classList.remove('hidden');
+      }
     }
 
     // ==============================================================
@@ -2434,11 +2696,12 @@
       if (footerLabel) footerLabel.innerText = footerText;
 
       applyRolePermissionsUI();
+      applyAdminDeskModeUI();
 
-      if (currentUserRole === 'couple_groom') {
+      if (currentUserRole === 'couple_groom' || (currentUserRole === 'admin' && adminDeskSide === 'groom')) {
         selectSide('groom');
         currentFilter = 'groom';
-      } else if (currentUserRole === 'couple_bride') {
+      } else if (currentUserRole === 'couple_bride' || (currentUserRole === 'admin' && adminDeskSide === 'bride')) {
         selectSide('bride');
         currentFilter = 'bride';
       } else {
@@ -2674,6 +2937,7 @@
     function checkRestorableSession() {
       const savedId = sessionStorage.getItem('merrydam_active_wedding_id');
       const savedRole = sessionStorage.getItem('merrydam_user_role');
+      const savedDeskSide = sessionStorage.getItem('merrydam_admin_desk_side');
       if (savedId) {
         const found = weddings.find(w => w.id === savedId);
         if (found) {
@@ -2683,7 +2947,10 @@
             return;
           }
           currentUserRole = savedRole || 'couple';
-          if (currentUserRole === 'admin') isMasterAdminSession = true;
+          if (currentUserRole === 'admin') {
+            isMasterAdminSession = true;
+            adminDeskSide = (savedDeskSide === 'groom' || savedDeskSide === 'bride') ? savedDeskSide : 'all';
+          }
           enterWedding(found);
         } else {
           sessionStorage.removeItem('merrydam_active_wedding_id');
@@ -2764,15 +3031,26 @@
       document.getElementById('adminCenterModal')?.classList.add('hidden');
     }
 
-    function enterWeddingFromAdmin(wId) {
+    function enterWeddingFromAdmin(wId, deskMode = 'all') {
       const found = weddings.find(w => w.id === wId);
       if (!found) return;
       isMasterAdminSession = true;
       currentUserRole = 'admin';
+      adminDeskSide = (deskMode === 'groom' || deskMode === 'bride') ? deskMode : 'all';
       sessionStorage.setItem('merrydam_user_role', 'admin');
+      sessionStorage.setItem('merrydam_admin_desk_side', adminDeskSide);
       closeAdminCenterModal();
       enterWedding(found);
-      showToast(`[${maskName(found.groomName)} ♥ ${maskName(found.brideName)}] 현장 접수대(관리자)로 입장했습니다.`, 'success');
+
+      const gName = maskName(found.groomName);
+      const bName = maskName(found.brideName);
+      if (adminDeskSide === 'groom') {
+        showToast(`[신랑 ${gName}측 전용 등록 페이지]로 입장했습니다.`, 'success');
+      } else if (adminDeskSide === 'bride') {
+        showToast(`[신부 ${bName}측 전용 등록 페이지]로 입장했습니다.`, 'success');
+      } else {
+        showToast(`[${gName} ♥ ${bName}] 통합 현장 접수대(관리자)로 입장했습니다.`, 'success');
+      }
     }
 
     function confirmDeleteWedding(wId) {
@@ -2790,6 +3068,10 @@
             isVirtualTestDeleted = true;
             localStorage.setItem(LOCAL_DELETED_VIRTUAL_KEY, 'true');
           }
+          markIdDeleted(wId);
+
+          const toRemoveRecords = allRecords.filter(r => r.weddingId === wId);
+          toRemoveRecords.forEach(r => markIdDeleted(r.id));
 
           weddings = weddings.filter(w => w.id !== wId);
           allRecords = allRecords.filter(r => r.weddingId !== wId);
@@ -2806,12 +3088,9 @@
           updateAdminSharePreview(adminSelectedWeddingId);
           showToast('선택한 예식이 삭제되었습니다.', 'info');
 
-          if (isCloudActive && currentUser && db) {
-            try {
-              await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'weddings', wId));
-            } catch (err) {
-              console.warn('Cloud delete note:', err);
-            }
+          await deleteCloudDoc('weddings', wId);
+          for (const r of toRemoveRecords) {
+            await deleteCloudDoc('cash_gifts', r.id);
           }
         }
       });
@@ -2862,21 +3141,27 @@
           : `<div class="text-stone-500 font-mono text-[11px] mt-0.5">신랑·신부 접속 비밀번호: <strong class="text-amber-900 font-bold">${escapeHtml(w.password)}</strong></div>`;
 
         return `
-          <div onclick="selectWeddingForShare('${w.id}')" class="${cardStyle} flex items-center justify-between text-xs group">
+          <div onclick="selectWeddingForShare('${w.id}')" class="${cardStyle} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs group">
             <div class="pr-2">
               <div class="flex flex-wrap items-center gap-1.5">
                 ${isSelected ? '<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500 text-white">선택중</span>' : ''}
                 ${w.isSeparateMode ? '<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">신랑·신부 따로관리</span>' : ''}
-                <div class="font-bold text-stone-900 group-hover:text-amber-900">${escapeHtml(w.date)} ${escapeHtml(w.time)} [${escapeHtml(maskedG)} ♥ ${escapeHtml(maskedB)}]</div>
+                <div class="font-bold text-stone-900 group-hover:text-amber-900">${escapeHtml(w.date)} ${escapeHtml(w.time)} [신랑 ${escapeHtml(maskedG)} ♥ 신부 ${escapeHtml(maskedB)}]</div>
               </div>
               ${maskedV ? `<div class="text-[11px] text-stone-500 mt-0.5">${escapeHtml(maskedV)}</div>` : ''}
               ${passwordLineHtml}
             </div>
-            <div class="flex items-center space-x-1.5 flex-shrink-0">
-              <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}')" class="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold rounded-lg text-[11px] transition-colors" title="이 예식 접수대로 바로 이동">
-                입장
+            <div class="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+              <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}', 'groom')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px] transition-colors shadow-xs" title="신랑측 전용 등록 페이지로 입장 (입력 실수 방지)">
+                신랑 접수대
               </button>
-              <button type="button" onclick="event.stopPropagation(); confirmDeleteWedding('${w.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px] transition-colors" title="예식 삭제">
+              <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}', 'bride')" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[11px] transition-colors shadow-xs" title="신부측 전용 등록 페이지로 입장 (입력 실수 방지)">
+                신부 접수대
+              </button>
+              <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}', 'all')" class="px-2 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold rounded-lg text-[11px] transition-colors" title="신랑·신부 통합 접수대로 입장">
+                통합 입장
+              </button>
+              <button type="button" onclick="event.stopPropagation(); confirmDeleteWedding('${w.id}')" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px] transition-colors" title="예식 삭제">
                 삭제
               </button>
             </div>
@@ -3038,17 +3323,17 @@
 
     function updateGroomMaskPreview(val) {
       const el = document.getElementById('groomMaskPreview');
-      if (el) el.innerText = val && val.trim() ? maskName(val) : '전OO';
+      if (el) el.innerText = val && val.trim() ? maskName(val) : '전형민';
     }
 
     function updateBrideMaskPreview(val) {
       const el = document.getElementById('brideMaskPreview');
-      if (el) el.innerText = val && val.trim() ? maskName(val) : '최OO';
+      if (el) el.innerText = val && val.trim() ? maskName(val) : '최윤정';
     }
 
     function updateVenueMaskPreview(val) {
       const el = document.getElementById('venueMaskPreview');
-      if (el) el.innerText = val && val.trim() ? maskVenue(val) : '메OO 웨딩홀 1층 그랜드볼룸';
+      if (el) el.innerText = val && val.trim() ? maskVenue(val) : '메리담 웨딩홀 1층 그랜드볼룸';
     }
 
     function openNewWeddingModalDirectly() {
@@ -3163,23 +3448,19 @@
 
       isMasterAdminSession = true;
       currentUserRole = 'admin';
+      adminDeskSide = 'all';
       sessionStorage.setItem('merrydam_user_role', 'admin');
+      sessionStorage.setItem('merrydam_admin_desk_side', 'all');
       enterWedding(newWeddingObj);
 
-      if (isCloudActive && currentUser && db) {
-        try {
-          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'weddings', newId), newWeddingObj);
-        } catch (cloudErr) {
-          console.warn('Background cloud sync note:', cloudErr);
-        }
-      }
+      await writeCloudDoc('weddings', newId, newWeddingObj);
     }
 
     // ==============================================================
     // 현장 축의금 접수 입력 폼 핸들러 (구분별 봉투번호, 금액, 성인/어린이 식권)
     // ==============================================================
     function selectSide(side) {
-      const restrictedSide = getRestrictedSide();
+      const restrictedSide = getRestrictedSide() || getEffectiveAdminSide();
       if (restrictedSide) side = restrictedSide;
 
       const hiddenInput = document.getElementById('selectedSide');
@@ -3419,13 +3700,7 @@
       syncTicketBadges();
       document.getElementById('guestName')?.focus();
 
-      if (isCloudActive && currentUser && db) {
-        try {
-          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cash_gifts', newRecId), newRecord);
-        } catch (err) {
-          console.warn('Cloud record save note:', err);
-        }
-      }
+      await writeCloudDoc('cash_gifts', newRecId, newRecord);
     }
 
     function resetForm() {
@@ -3587,7 +3862,9 @@
 
       const recentEl = document.getElementById('recentEntriesList');
       if (recentEl) {
-        const recentFive = records.slice(0, 5);
+        const effectiveAdminSide = getEffectiveAdminSide();
+        const recentSource = effectiveAdminSide ? records.filter(r => r.side === effectiveAdminSide) : records;
+        const recentFive = recentSource.slice(0, 5);
         if (recentFive.length === 0) {
           recentEl.innerHTML = `
             <div class="text-center py-8 text-stone-400 text-xs">
@@ -3802,13 +4079,7 @@
       filterRecordsForActiveWedding();
       showToast(`${updated.guestName}님의 축의 내역이 수정되었습니다.`, 'success');
 
-      if (isCloudActive && currentUser && db) {
-        try {
-          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cash_gifts', id), updated);
-        } catch (err) {
-          console.warn('Cloud edit note:', err);
-        }
-      }
+      await writeCloudDoc('cash_gifts', id, updated);
     }
 
     function confirmDeleteRecord(recordId) {
@@ -3822,18 +4093,13 @@
         okText: '삭제하기',
         isDanger: true,
         onConfirm: async () => {
+          markIdDeleted(recordId);
           allRecords = allRecords.filter(r => r.id !== recordId);
           saveLocalBackup();
           filterRecordsForActiveWedding();
           showToast('내역이 삭제되었습니다.', 'info');
 
-          if (isCloudActive && currentUser && db) {
-            try {
-              await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cash_gifts', recordId));
-            } catch (err) {
-              console.warn('Cloud record delete note:', err);
-            }
-          }
+          await deleteCloudDoc('cash_gifts', recordId);
         }
       });
     }
@@ -3849,11 +4115,13 @@
         onConfirm: async () => {
           const targetWeddingId = activeWedding.id;
           const toDelete = allRecords.filter(r => r.weddingId === targetWeddingId);
+          toDelete.forEach(r => markIdDeleted(r.id));
           allRecords = allRecords.filter(r => r.weddingId !== targetWeddingId);
           saveLocalBackup();
           filterRecordsForActiveWedding();
           showToast('현재 예식의 축의 내역이 초기화되었습니다.', 'info');
 
+          if (cloudAuthPromise) await cloudAuthPromise;
           if (isCloudActive && currentUser && db && toDelete.length > 0) {
             try {
               const batch = writeBatch(db);
@@ -4880,6 +5148,7 @@
     window.selectWeddingForShare = selectWeddingForShare;
     window.setAdminShareSide = setAdminShareSide;
     window.enterWeddingFromAdmin = enterWeddingFromAdmin;
+    window.setAdminDeskSide = setAdminDeskSide;
     window.confirmDeleteWedding = confirmDeleteWedding;
     window.updateAdminSharePreview = updateAdminSharePreview;
     window.copyShareTextToClipboard = copyShareTextToClipboard;
