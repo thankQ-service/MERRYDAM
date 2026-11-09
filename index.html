@@ -1770,6 +1770,7 @@
     const LOCAL_RECORDS_KEY = "merrydam_records_store_v3";
     const LOCAL_DELETED_VIRTUAL_KEY = "merrydam_deleted_virtual_v3";
     const LOCAL_DELETED_IDS_KEY = "merrydam_deleted_ids_v3";
+    const LOCAL_MASTER_ADMIN_KEY = "merrydam_master_admin_auth_v3";
 
     let db = null;
     let auth = null;
@@ -1789,8 +1790,8 @@
     let searchQuery = '';
 
     let pendingAuthCallback = null;
-    let isMasterAdminSession = false; // 총괄 관리자(77985590) 인증 세션 여부
-    let currentUserRole = 'guest';    // 'admin' | 'couple' | 'couple_groom' | 'couple_bride' | 'guest'
+    let isMasterAdminSession = localStorage.getItem(LOCAL_MASTER_ADMIN_KEY) === 'true'; // 총괄 관리자(77985590) 인증 영구 유지
+    let currentUserRole = isMasterAdminSession ? 'admin' : 'guest';    // 'admin' | 'couple' | 'couple_groom' | 'couple_bride' | 'guest'
     let adminDeskSide = 'all';        // 관리자 접수대 페이지 구분 ('all' | 'groom' | 'bride')
     let adminSelectedWeddingId = null;
     let adminShareSide = 'groom';     // 별도 관리 예식 선택 시 공유 문구 탭 ('groom' | 'bride')
@@ -2401,12 +2402,13 @@
       // 1. 총괄 관리자 마스터 번호(77985590)인 경우 -> 관리자 센터 오픈
       if (entered === ADMIN_PASSWORD) {
         isMasterAdminSession = true;
+        localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
         currentUserRole = 'admin';
         sessionStorage.setItem('merrydam_user_role', 'admin');
         inputEl.value = '';
         if (errEl) errEl.classList.add('hidden');
         openAdminCenterModal();
-        showToast('총괄 관리자 센터로 인증되었습니다.', 'success');
+        showToast('총괄 관리자 인증이 완료되었습니다. (예식 나가기 후에도 계속 유지됩니다)', 'success');
         return;
       }
 
@@ -2437,7 +2439,6 @@
       }
 
       if (matchedWedding) {
-        isMasterAdminSession = false;
         currentUserRole = matchedRole;
         sessionStorage.setItem('merrydam_user_role', matchedRole);
 
@@ -2517,6 +2518,12 @@
     }
 
     function confirmExitWeddingSession() {
+      // 총괄 관리자인 경우 확인 팝업이나 비밀번호 재입력 없이 즉시 예식 목록(관리자 센터)으로 전환
+      if (isMasterAdminSession) {
+        exitWeddingToGate();
+        return;
+      }
+
       openConfirmModal({
         title: '예식 접수대 나가기',
         message: '현재 열람 중인 예식 화면에서 안전하게 로그아웃하고 초기 비밀번호 입력 화면으로 돌아가시겠습니까?',
@@ -2529,18 +2536,29 @@
     function exitWeddingToGate() {
       activeWedding = null;
       records = [];
-      isMasterAdminSession = false;
-      currentUserRole = 'guest';
       adminDeskSide = 'all';
       sessionStorage.removeItem('merrydam_active_wedding_id');
-      sessionStorage.removeItem('merrydam_user_role');
       sessionStorage.removeItem('merrydam_admin_desk_side');
+
+      if (isMasterAdminSession) {
+        // 관리자는 예식 나가기를 해도 관리자 권한이 그대로 유지되며 즉시 총괄 관리자 센터가 열림
+        currentUserRole = 'admin';
+        sessionStorage.setItem('merrydam_user_role', 'admin');
+      } else {
+        currentUserRole = 'guest';
+        sessionStorage.removeItem('merrydam_user_role');
+      }
 
       document.getElementById('gateLockScreen')?.classList.remove('hidden');
       const passInput = document.getElementById('gateDirectPassInput');
       if (passInput) passInput.value = '';
       document.getElementById('gateDirectPassErrorMsg')?.classList.add('hidden');
       renderApp();
+
+      if (isMasterAdminSession) {
+        openAdminCenterModal();
+        showToast('총괄 관리자 권한이 유지되어 예식 관리 목록으로 이동했습니다.', 'info');
+      }
     }
 
     // ==============================================================
@@ -2946,9 +2964,10 @@
             sessionStorage.removeItem('merrydam_user_role');
             return;
           }
-          currentUserRole = savedRole || 'couple';
-          if (currentUserRole === 'admin') {
+          currentUserRole = savedRole || (isMasterAdminSession ? 'admin' : 'couple');
+          if (currentUserRole === 'admin' || isMasterAdminSession) {
             isMasterAdminSession = true;
+            localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
             adminDeskSide = (savedDeskSide === 'groom' || savedDeskSide === 'bride') ? savedDeskSide : 'all';
           }
           enterWedding(found);
@@ -2987,6 +3006,7 @@
 
       if (enteredPass === ADMIN_PASSWORD) {
         isMasterAdminSession = true;
+        localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
         currentUserRole = 'admin';
         sessionStorage.setItem('merrydam_user_role', 'admin');
         if (activeWedding) {
@@ -3013,7 +3033,7 @@
       } else {
         requestPasswordAndExecute('총괄 관리자 인증', () => {
           openAdminCenterModal();
-          showToast('총괄 관리자 모드가 활성화되었습니다.', 'success');
+          showToast('총괄 관리자 모드가 활성화되었습니다. (예식 나가기 후에도 유지됩니다)', 'success');
         });
       }
     }
@@ -3035,6 +3055,7 @@
       const found = weddings.find(w => w.id === wId);
       if (!found) return;
       isMasterAdminSession = true;
+      localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
       currentUserRole = 'admin';
       adminDeskSide = (deskMode === 'groom' || deskMode === 'bride') ? deskMode : 'all';
       sessionStorage.setItem('merrydam_user_role', 'admin');
@@ -3447,6 +3468,7 @@
       showToast(`[${maskedG} ♥ ${maskedB}] 예식이 안전하게 개설되었습니다!${modeNotice}`, 'success');
 
       isMasterAdminSession = true;
+      localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
       currentUserRole = 'admin';
       adminDeskSide = 'all';
       sessionStorage.setItem('merrydam_user_role', 'admin');
