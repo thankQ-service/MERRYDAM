@@ -773,6 +773,10 @@
                     <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                     <span>예식정보 수정</span>
                   </button>
+                  <button type="button" onclick="openExcelUploadModal()" class="btn-tactile px-2.5 py-0.5 text-[11px] font-bold rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white flex items-center space-x-1 shadow-2xs">
+                    <i class="fa-solid fa-file-arrow-up text-[10px]"></i>
+                    <span>엑셀 장부 업로드</span>
+                  </button>
                 </div>
                 <p class="text-[11px] text-stone-500 mt-0.5">※ 아래 버튼은 <strong>현장 직원의 입력 실수 방지용(1번 구분 버튼 고정)</strong>입니다. <strong>[신랑측 전용 등록]</strong>으로 입력해도 통합관리 예식의 <strong>신랑·신부님께는 양측 내역이 모두 통합되어 보입니다.</strong></p>
               </div>
@@ -1208,6 +1212,15 @@
                 <i class="fa-solid fa-xmark text-xs"></i>
               </button>
             </div>
+
+            <!-- 접수 내역 탭 엑셀 장부 업로드 버튼 (관리자 전용) -->
+            <button id="excelUploadListBtn" type="button" onclick="openExcelUploadModal()" 
+              class="btn-tactile inline-flex items-center space-x-1.5 px-3 sm:px-3.5 py-2 rounded-xl border border-emerald-400 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs whitespace-nowrap" 
+              title="엑셀 장부 업로드 (관리자 전용 일괄 등록 및 복원)">
+              <i class="fa-solid fa-file-arrow-up text-sm"></i>
+              <span class="hidden sm:inline">엑셀 업로드</span>
+              <span class="sm:hidden">업로드</span>
+            </button>
 
             <!-- 접수 내역 탭 원클릭 3종 엑셀 다운로드 버튼 -->
             <button onclick="handleExcelDownloadClick()" 
@@ -1657,6 +1670,134 @@
             class="btn-tactile flex-1 sm:flex-initial px-4.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center space-x-1.5">
             <i class="fa-solid fa-boxes-packing text-amber-300"></i>
             <span>3종 파일 한 번에 받기</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- EXCEL UPLOAD MODAL (관리자 전용 엑셀 장부 일괄 업로드 & 복원)    -->
+  <!-- ============================================================== -->
+  <div id="excelUploadModal" class="fixed inset-0 z-[80] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto space-y-5">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-stone-200">
+        <div class="flex items-center space-x-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl shadow-xs border border-emerald-200">
+            <i class="fa-solid fa-file-arrow-up"></i>
+          </div>
+          <div>
+            <h3 class="wedding-title text-base sm:text-lg font-bold text-stone-900">엑셀 장부 일괄 업로드 및 복원</h3>
+            <p class="text-xs text-stone-500">메리담 정산 장부 엑셀 파일 또는 일반 하객 명부 엑셀(.xlsx, .xls, .csv)을 자동으로 인식합니다.</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeExcelUploadModal()" class="text-stone-400 hover:text-stone-600 text-xl p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Step 1: 옵션 설정 & 표준 양식 다운로드 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200/90 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1.5">
+            1. 업로드 반영 방식
+          </label>
+          <select id="excelUploadMergeMode" class="w-full px-3 py-2.5 bg-white border border-stone-300 rounded-xl font-bold text-stone-800 outline-none focus:border-[#C5A059]">
+            <option value="append">기존 내역 유지 + 이어서 병합 추가 (중복 자동제외)</option>
+            <option value="replace">기존 내역 전체 지우고 업로드 파일로 교체</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1.5">
+            2. 구분(신랑/신부) 미기재 행 처리 기준
+          </label>
+          <select id="excelUploadDefaultSide" onchange="reparseLastExcelFileIfLoaded()" class="w-full px-3 py-2.5 bg-white border border-stone-300 rounded-xl font-bold text-stone-800 outline-none focus:border-[#C5A059]">
+            <option value="auto">파일 내 '구분' 열 자동 인식 (미기재 시 신랑측)</option>
+            <option value="groom">파일 전체를 [신랑측]으로 일괄 지정</option>
+            <option value="bride">파일 전체를 [신부측]으로 일괄 지정</option>
+            <option value="neutral">파일 전체를 [미구분]으로 일괄 지정</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 2: 파일 드래그 앤 드롭 / 선택 박스 -->
+      <div id="excelDropZone"
+        onclick="document.getElementById('excelFileInput').click()"
+        ondragover="handleExcelDragOver(event)"
+        ondragleave="handleExcelDragLeave(event)"
+        ondrop="handleExcelDrop(event)"
+        class="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 rounded-2xl p-6 text-center cursor-pointer transition-all">
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleExcelFileSelect(event)">
+        <div class="w-12 h-12 rounded-2xl bg-white border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-2.5 text-xl shadow-2xs">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+        </div>
+        <p id="excelUploadFileNameText" class="text-sm font-extrabold text-stone-800">
+          클릭하여 엑셀 파일 선택 또는 이곳에 파일을 끌어다 놓으세요
+        </p>
+        <p class="text-[11px] text-stone-500 mt-1">
+          메리담 다운로드 장부(전체·신랑측·신부측) 및 일반 엑셀 표 자동 분석 지원 (0원 빈봉투·성인/어린이 식권 포함)
+        </p>
+        <div class="mt-3 flex items-center justify-center">
+          <button type="button" onclick="event.stopPropagation(); downloadSampleUploadTemplate()" class="btn-tactile px-3 py-1.5 rounded-lg bg-white hover:bg-stone-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold inline-flex items-center space-x-1 shadow-2xs">
+            <i class="fa-solid fa-file-Simple"></i>
+            <i class="fa-solid fa-download text-[10px]"></i>
+            <span>업로드용 빈 엑셀 표준양식 다운로드</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: 파싱 결과 미리보기 영역 -->
+      <div id="excelUploadPreviewSection" class="hidden space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-[#FAF6EE] px-4 py-3 rounded-2xl border border-[#EADBCA] text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-extrabold text-stone-900">인식된 내역: <strong id="uploadPreviewTotalCount" class="text-emerald-700 text-sm">0</strong>건</span>
+            <span class="text-stone-300">|</span>
+            <span class="text-blue-700 font-bold">신랑측 <strong id="uploadPreviewGroomCount">0</strong>건</span>
+            <span class="text-rose-600 font-bold">신부측 <strong id="uploadPreviewBrideCount">0</strong>건</span>
+            <span class="text-stone-600 font-semibold">미구분 <strong id="uploadPreviewNeutralCount">0</strong>건</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span>총 금액: <strong id="uploadPreviewTotalAmount" class="text-amber-900 font-extrabold">0원</strong></span>
+            <span class="text-stone-300">|</span>
+            <span>총 식권: <strong id="uploadPreviewTotalTickets" class="text-stone-900 font-bold">0장</strong></span>
+          </div>
+        </div>
+
+        <div class="max-h-56 overflow-y-auto overflow-x-auto rounded-2xl border border-stone-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[560px]">
+            <thead class="sticky top-0 bg-stone-100 text-stone-600 font-bold border-b border-stone-200">
+              <tr>
+                <th class="py-2 px-3 text-center w-16">번호</th>
+                <th class="py-2 px-3 text-center w-20">구분</th>
+                <th class="py-2 px-3">축의자 성함</th>
+                <th class="py-2 px-3 text-right">축의 금액</th>
+                <th class="py-2 px-3 text-center">성인/어린이 식권</th>
+                <th class="py-2 px-3">메모 / 관계</th>
+              </tr>
+            </thead>
+            <tbody id="excelUploadPreviewTbody" class="divide-y divide-stone-100">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bottom Action Buttons -->
+      <div class="pt-2 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-[11px] text-stone-500">
+          <i class="fa-solid fa-bolt text-amber-600 mr-1"></i>업로드 즉시 PC와 모바일 모든 기기에 실시간으로 동기화됩니다.
+        </p>
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <button type="button" onclick="closeExcelUploadModal()" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">
+            취소
+          </button>
+          <button type="button" id="confirmExcelUploadBtn" onclick="commitExcelUploadRecords()" disabled
+            class="btn-tactile flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center space-x-1.5 transition-all">
+            <i class="fa-solid fa-check"></i>
+            <span>장부에 일괄 반영하기</span>
           </button>
         </div>
       </div>
@@ -3636,6 +3777,7 @@
       const sideBtnNeutral = document.getElementById('sideBtnNeutral');
 
       const resetBtn = document.getElementById('resetWeddingDataBtn');
+      const excelUploadListBtn = document.getElementById('excelUploadListBtn');
       const headerLockIcon = document.getElementById('headerExcelLockIcon');
       const homeSyncDesc = document.getElementById('homeSyncNoticeDesc');
 
@@ -3682,6 +3824,7 @@
 
         coupleBanner?.classList.remove('hidden');
         resetBtn?.classList.add('hidden');
+        excelUploadListBtn?.classList.add('hidden');
         tableActionHeader?.classList.add('hidden');
 
         if (headerLockIcon) {
@@ -3714,6 +3857,7 @@
         }
         coupleBanner?.classList.add('hidden');
         resetBtn?.classList.remove('hidden');
+        excelUploadListBtn?.classList.remove('hidden');
         tableActionHeader?.classList.remove('hidden');
 
         if (headerLockIcon) {
@@ -5969,6 +6113,465 @@
     }
 
     // ==============================================================
+    // 엑셀 장부 일괄 업로드 및 복원 엔진 (관리자 전용)
+    // - 메리담 정산 장부 엑셀(다중 시트 / 다중 페이지 구분선 포함) 자동 인식
+    // - 일반 하객 명부 엑셀(.xlsx, .xls, .csv) 컬럼 자동 매핑
+    // ==============================================================
+    let stagedExcelUploadRecords = [];
+    let lastUploadedExcelBuffer = null;
+    let lastUploadedExcelFileName = '';
+
+    function openExcelUploadModal() {
+      if (!activeWedding) {
+        showToast('먼저 업로드할 예식에 입장해 주세요.', 'warning');
+        return;
+      }
+      if (!isMasterAdminSession || currentUserRole !== 'admin') {
+        requestPasswordAndExecute('엑셀 장부 업로드 권한 확인', () => {
+          openExcelUploadModal();
+        });
+        return;
+      }
+
+      stagedExcelUploadRecords = [];
+      lastUploadedExcelBuffer = null;
+      lastUploadedExcelFileName = '';
+
+      const fileInput = document.getElementById('excelFileInput');
+      if (fileInput) fileInput.value = '';
+
+      const defaultSideSel = document.getElementById('excelUploadDefaultSide');
+      if (defaultSideSel) {
+        if (adminDeskSide === 'groom') defaultSideSel.value = 'groom';
+        else if (adminDeskSide === 'bride') defaultSideSel.value = 'bride';
+        else defaultSideSel.value = 'auto';
+      }
+
+      const nameText = document.getElementById('excelUploadFileNameText');
+      if (nameText) nameText.innerText = '클릭하여 엑셀 파일 선택 또는 이곳에 파일을 끌어다 놓으세요';
+
+      document.getElementById('excelUploadPreviewSection')?.classList.add('hidden');
+      const confirmBtn = document.getElementById('confirmExcelUploadBtn');
+      if (confirmBtn) confirmBtn.disabled = true;
+
+      document.getElementById('excelUploadModal')?.classList.remove('hidden');
+    }
+
+    function closeExcelUploadModal() {
+      document.getElementById('excelUploadModal')?.classList.add('hidden');
+    }
+
+    function handleExcelDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dz = document.getElementById('excelDropZone');
+      if (dz) dz.classList.add('ring-4', 'ring-emerald-200', 'bg-emerald-100/70');
+    }
+
+    function handleExcelDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dz = document.getElementById('excelDropZone');
+      if (dz) dz.classList.remove('ring-4', 'ring-emerald-200', 'bg-emerald-100/70');
+    }
+
+    function handleExcelDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleExcelDragLeave(e);
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        processUploadedExcelFile(files[0]);
+      }
+    }
+
+    function handleExcelFileSelect(e) {
+      const files = e.target?.files;
+      if (files && files.length > 0) {
+        processUploadedExcelFile(files[0]);
+      }
+    }
+
+    function reparseLastExcelFileIfLoaded() {
+      if (lastUploadedExcelBuffer) {
+        parseExcelBufferToStagedRecords(lastUploadedExcelBuffer, lastUploadedExcelFileName);
+      }
+    }
+
+    function parseCleanNumber(val, defaultVal = 0) {
+      if (val === null || val === undefined || val === '') return defaultVal;
+      if (typeof val === 'number' && !isNaN(val)) return Math.round(val);
+      const str = String(val).replace(/,/g, '').trim();
+      const m = str.match(/-?\d+/);
+      return m ? parseInt(m[0], 10) : defaultVal;
+    }
+
+    function normalizeSideValue(rawSide, fallbackSide = 'groom') {
+      if (fallbackSide === 'groom' || fallbackSide === 'bride' || fallbackSide === 'neutral') {
+        if (!rawSide) return fallbackSide;
+      }
+      const s = String(rawSide || '').trim().toLowerCase();
+      if (s.includes('신랑') || s === 'groom' || s === '남' || s === '남자') return 'groom';
+      if (s.includes('신부') || s === 'bride' || s === '여' || s === '여자') return 'bride';
+      if (s.includes('미구분') || s.includes('공통') || s === 'neutral' || s === '기타') return 'neutral';
+      return (fallbackSide === 'bride' || fallbackSide === 'neutral') ? fallbackSide : 'groom';
+    }
+
+    function processUploadedExcelFile(file) {
+      if (!file) return;
+      if (typeof XLSX === 'undefined') {
+        showToast('엑셀 분석 엔진을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.', 'warning');
+        return;
+      }
+
+      lastUploadedExcelFileName = file.name;
+      const nameText = document.getElementById('excelUploadFileNameText');
+      if (nameText) nameText.innerText = `선택된 파일: ${file.name}`;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          lastUploadedExcelBuffer = ev.target.result;
+          parseExcelBufferToStagedRecords(lastUploadedExcelBuffer, file.name);
+        } catch (err) {
+          console.error('Excel file read error:', err);
+          showToast('엑셀 파일을 읽는 중 오류가 발생했습니다.', 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function extractRecordsFromSheetRows(rows2D, sheetName, forcedSideMode) {
+      const extracted = [];
+      if (!Array.isArray(rows2D) || rows2D.length === 0) return extracted;
+
+      let sheetDefaultSide = 'groom';
+      if (sheetName.includes('신부')) sheetDefaultSide = 'bride';
+      else if (sheetName.includes('신랑')) sheetDefaultSide = 'groom';
+
+      let colMap = null;
+
+      for (let rIdx = 0; rIdx < rows2D.length; rIdx++) {
+        const row = rows2D[rIdx];
+        if (!Array.isArray(row)) continue;
+
+        const cells = row.map(c => String(c ?? '').trim());
+        const joined = cells.join(' ');
+        if (!joined) continue;
+
+        // 상단 요약표나 페이지 구분선, 하단 총 결산 합계 행 건너뛰기
+        if (
+          joined.includes('총 결산 합계') ||
+          joined.includes('메리담 공식 웨딩') ||
+          joined.includes('페이지 계속') ||
+          joined.includes('총 접수 건수') ||
+          joined.includes('예식 일시') ||
+          joined.includes('예식 장소') ||
+          joined.includes('접수된 축의 내역이 없습니다')
+        ) {
+          continue;
+        }
+
+        // 헤더 행 자동 감지 ('성함' 또는 '이름' 포함 행)
+        const hasNameHeader = cells.some(c =>
+          c === '축의자 성함' || c === '축의자성함' || c === '성함' || c === '하객성함' || c === '하객명' || c === '이름' || c === '축의자'
+        );
+        const hasAmountHeader = cells.some(c =>
+          c.includes('금액') || c.includes('축의금')
+        );
+
+        if (hasNameHeader && (hasAmountHeader || cells.length >= 2)) {
+          colMap = {
+            envelopeNum: -1,
+            side: -1,
+            guestName: -1,
+            amount: -1,
+            adultTickets: -1,
+            childTickets: -1,
+            memo: -1,
+            timeStr: -1
+          };
+          cells.forEach((cellText, cIdx) => {
+            const clean = cellText.replace(/\s+/g, '');
+            if (clean === '번호' || clean === '봉투번호' || clean === '순번' || clean === 'no' || clean === 'No') {
+              if (colMap.envelopeNum === -1) colMap.envelopeNum = cIdx;
+            } else if (clean === '구분' || clean === '측' || clean === '신랑/신부') {
+              colMap.side = cIdx;
+            } else if (clean.includes('성함') || clean === '이름' || clean === '축의자' || clean === '하객명') {
+              colMap.guestName = cIdx;
+            } else if (clean.includes('금액') || clean === '축의금') {
+              colMap.amount = cIdx;
+            } else if (clean.includes('성인') || clean === '식권' || clean === '식권수' || clean === '식권장수') {
+              if (colMap.adultTickets === -1) colMap.adultTickets = cIdx;
+            } else if (clean.includes('어린이') || clean.includes('소인') || clean.includes('아동')) {
+              colMap.childTickets = cIdx;
+            } else if (clean.includes('메모') || clean.includes('관계') || clean.includes('비고') || clean.includes('소속')) {
+              colMap.memo = cIdx;
+            } else if (clean.includes('시간') || clean.includes('일시')) {
+              colMap.timeStr = cIdx;
+            }
+          });
+          continue;
+        }
+
+        // 헤더 행 없이 바로 데이터가 시작하거나, 이미 헤더가 매핑된 경우 데이터 추출
+        if (!colMap) {
+          // 기본 메리담 8열 양식인지 확인 (#001 형태 또는 신랑측/신부측 포함)
+          if (cells[0].startsWith('#') || cells[1] === '신랑측' || cells[1] === '신부측' || cells[1] === '미구분') {
+            colMap = { envelopeNum: 0, side: 1, guestName: 2, amount: 3, adultTickets: 4, childTickets: 5, memo: 6, timeStr: 7 };
+          } else {
+            continue;
+          }
+        }
+
+        const rawName = colMap.guestName !== -1 ? cells[colMap.guestName] : '';
+        if (!rawName || rawName === '축의자 성함' || rawName === '성함' || rawName === '이름' || rawName.includes('총 결산')) {
+          continue;
+        }
+
+        // 금액이 숫자인지 확인 (메리담 요약행의 한글 텍스트 등 오인식 방지)
+        const rawAmtVal = colMap.amount !== -1 ? row[colMap.amount] : 0;
+        const rawAmtStr = String(rawAmtVal ?? '').trim();
+        if (rawAmtStr && !/\d/.test(rawAmtStr) && !rawAmtStr.includes('영원')) {
+          continue;
+        }
+
+        const amount = Math.max(0, parseCleanNumber(rawAmtVal, 0));
+        const rawEnv = colMap.envelopeNum !== -1 ? cells[colMap.envelopeNum] : '';
+        const envelopeNum = Math.max(0, parseCleanNumber(rawEnv, 0));
+
+        let side = sheetDefaultSide;
+        if (forcedSideMode === 'groom' || forcedSideMode === 'bride' || forcedSideMode === 'neutral') {
+          side = forcedSideMode;
+        } else if (colMap.side !== -1 && cells[colMap.side]) {
+          side = normalizeSideValue(cells[colMap.side], sheetDefaultSide);
+        }
+
+        const adultTickets = colMap.adultTickets !== -1 ? Math.max(0, parseCleanNumber(row[colMap.adultTickets], 0)) : 1;
+        const childTickets = colMap.childTickets !== -1 ? Math.max(0, parseCleanNumber(row[colMap.childTickets], 0)) : 0;
+        const memo = colMap.memo !== -1 ? String(row[colMap.memo] ?? '').trim() : '';
+        const timeStr = colMap.timeStr !== -1 ? String(row[colMap.timeStr] ?? '').trim() : '';
+
+        extracted.push({
+          envelopeNum,
+          side,
+          guestName: rawName,
+          amount,
+          adultTickets,
+          childTickets,
+          tickets: adultTickets + childTickets,
+          memo,
+          timeStr
+        });
+      }
+
+      return extracted;
+    }
+
+    function parseExcelBufferToStagedRecords(arrayBuffer, fileName = '') {
+      try {
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const forcedSideMode = document.getElementById('excelUploadDefaultSide')?.value || 'auto';
+
+        // 메리담 통합 엑셀의 경우 '전체_종합대장' 시트가 있으면 중복 방지를 위해 해당 시트만 우선 사용
+        const sheetNames = workbook.SheetNames || [];
+        let targetSheets = sheetNames;
+        const comprehensiveSheet = sheetNames.find(n => n.includes('전체') || n.includes('종합'));
+        if (comprehensiveSheet && sheetNames.length > 1) {
+          targetSheets = [comprehensiveSheet];
+        }
+
+        let combined = [];
+        targetSheets.forEach(sName => {
+          const ws = workbook.Sheets[sName];
+          if (!ws) return;
+          const rows2D = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          const sheetRecs = extractRecordsFromSheetRows(rows2D, sName, forcedSideMode);
+          combined = combined.concat(sheetRecs);
+        });
+
+        stagedExcelUploadRecords = combined;
+        renderExcelUploadPreview();
+
+        if (combined.length > 0) {
+          showToast(`엑셀 파일에서 총 ${combined.length}건의 하객 내역을 인식했습니다.`, 'success');
+        } else {
+          showToast('인식된 하객 내역이 없습니다. 엑셀 열 제목(성함, 금액 등)을 확인해 주세요.', 'warning');
+        }
+      } catch (err) {
+        console.error('Excel parse error:', err);
+        showToast('엑셀 파일 형식을 분석할 수 없습니다.', 'error');
+      }
+    }
+
+    function renderExcelUploadPreview() {
+      const previewSec = document.getElementById('excelUploadPreviewSection');
+      const tbody = document.getElementById('excelUploadPreviewTbody');
+      const confirmBtn = document.getElementById('confirmExcelUploadBtn');
+      if (!previewSec || !tbody) return;
+
+      if (stagedExcelUploadRecords.length === 0) {
+        previewSec.classList.add('hidden');
+        if (confirmBtn) confirmBtn.disabled = true;
+        return;
+      }
+
+      previewSec.classList.remove('hidden');
+      if (confirmBtn) confirmBtn.disabled = false;
+
+      let gCnt = 0;
+      let bCnt = 0;
+      let nCnt = 0;
+      let totalAmt = 0;
+      let totalTickets = 0;
+
+      stagedExcelUploadRecords.forEach(r => {
+        if (r.side === 'groom') gCnt++;
+        else if (r.side === 'bride') bCnt++;
+        else nCnt++;
+        totalAmt += Math.round(Number(r.amount) || 0);
+        totalTickets += (Math.round(Number(r.adultTickets) || 0) + Math.round(Number(r.childTickets) || 0));
+      });
+
+      const setTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+      };
+
+      setTxt('uploadPreviewTotalCount', stagedExcelUploadRecords.length.toLocaleString());
+      setTxt('uploadPreviewGroomCount', gCnt.toLocaleString());
+      setTxt('uploadPreviewBrideCount', bCnt.toLocaleString());
+      setTxt('uploadPreviewNeutralCount', nCnt.toLocaleString());
+      setTxt('uploadPreviewTotalAmount', `${totalAmt.toLocaleString()}원`);
+      setTxt('uploadPreviewTotalTickets', `${totalTickets.toLocaleString()}장`);
+
+      tbody.innerHTML = stagedExcelUploadRecords.slice(0, 100).map((r, idx) => {
+        const sideBadge = r.side === 'groom'
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-wedding-groom border border-blue-200">신랑측</span>'
+          : (r.side === 'bride'
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-wedding-bride border border-rose-200">신부측</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600">미구분</span>');
+        const envDisplay = r.envelopeNum > 0 ? `#${String(r.envelopeNum).padStart(3, '0')}` : `자동(#${idx + 1})`;
+        return `
+          <tr class="hover:bg-amber-50/40">
+            <td class="py-2 px-3 text-center font-mono text-stone-500">${envDisplay}</td>
+            <td class="py-2 px-3 text-center">${sideBadge}</td>
+            <td class="py-2 px-3 font-bold text-stone-900">${escapeHtml(r.guestName)}</td>
+            <td class="py-2 px-3 text-right font-extrabold text-amber-900">${Number(r.amount).toLocaleString()}원</td>
+            <td class="py-2 px-3 text-center text-stone-600">성인 ${r.adultTickets} / 어린이 ${r.childTickets}</td>
+            <td class="py-2 px-3 text-stone-500">${escapeHtml(r.memo || '-')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function downloadSampleUploadTemplate() {
+      if (typeof XLSX === 'undefined') return;
+      const sampleRows = [
+        ['번호', '구분', '축의자 성함', '축의 금액', '성인식권', '어린이', '메모 / 관계', '접수시간'],
+        [1, '신랑측', '홍길동', 100000, 1, 0, '직장동료', '13:30'],
+        [2, '신랑측', '김철수', 0, 1, 0, '계좌이체(빈봉투)', '13:35'],
+        [1, '신부측', '이영희', 150000, 2, 1, '대학동기', '13:40']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sampleRows);
+      ws['!cols'] = [
+        { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 10 }
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '축의금_업로드양식');
+      XLSX.writeFile(wb, '메리담_축의장부_일괄업로드_표준양식.xlsx');
+      showToast('업로드용 표준 엑셀 양식이 다운로드되었습니다.', 'info');
+    }
+
+    async function commitExcelUploadRecords() {
+      if (!activeWedding || !isMasterAdminSession || currentUserRole !== 'admin') return;
+      if (stagedExcelUploadRecords.length === 0) return;
+
+      const mergeMode = document.getElementById('excelUploadMergeMode')?.value || 'append';
+      const targetWeddingId = activeWedding.id;
+      const now = new Date();
+      const defaultTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      if (mergeMode === 'replace') {
+        const oldRecs = allRecords.filter(r => r.weddingId === targetWeddingId);
+        oldRecs.forEach(r => markIdDeleted(r.id));
+        allRecords = allRecords.filter(r => r.weddingId !== targetWeddingId);
+      }
+
+      const existingWeddingRecs = allRecords.filter(r => r.weddingId === targetWeddingId);
+      const maxEnvelopeBySide = { groom: 0, bride: 0, neutral: 0 };
+      existingWeddingRecs.forEach(r => {
+        const s = r.side || 'groom';
+        const n = Number(r.envelopeNum) || 0;
+        if (n > (maxEnvelopeBySide[s] || 0)) {
+          maxEnvelopeBySide[s] = n;
+        }
+      });
+
+      const newlyAdded = [];
+      let skippedDuplicates = 0;
+
+      stagedExcelUploadRecords.forEach((item, idx) => {
+        const side = item.side || 'groom';
+        let envNum = item.envelopeNum;
+
+        if (mergeMode === 'append' && envNum > 0) {
+          const isDup = existingWeddingRecs.some(ex =>
+            ex.side === side &&
+            Number(ex.envelopeNum) === envNum &&
+            String(ex.guestName || '').trim() === item.guestName &&
+            Number(ex.amount) === item.amount
+          );
+          if (isDup) {
+            skippedDuplicates++;
+            return;
+          }
+          // 기존 같은 봉투번호가 이미 있으면 이어서 새 번호 부여, 없으면 엑셀의 번호 유지
+          const numTaken = existingWeddingRecs.some(ex => ex.side === side && Number(ex.envelopeNum) === envNum) ||
+                           newlyAdded.some(na => na.side === side && Number(na.envelopeNum) === envNum);
+          if (numTaken) {
+            maxEnvelopeBySide[side] = (maxEnvelopeBySide[side] || 0) + 1;
+            envNum = maxEnvelopeBySide[side];
+          } else if (envNum > (maxEnvelopeBySide[side] || 0)) {
+            maxEnvelopeBySide[side] = envNum;
+          }
+        } else if (!envNum || envNum <= 0) {
+          maxEnvelopeBySide[side] = (maxEnvelopeBySide[side] || 0) + 1;
+          envNum = maxEnvelopeBySide[side];
+        }
+
+        const recId = `rec_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`;
+        const newRec = {
+          id: recId,
+          weddingId: targetWeddingId,
+          envelopeNum: envNum,
+          side,
+          guestName: item.guestName,
+          amount: Math.max(0, Math.round(Number(item.amount) || 0)),
+          adultTickets: Math.max(0, Number(item.adultTickets) || 0),
+          childTickets: Math.max(0, Number(item.childTickets) || 0),
+          tickets: Math.max(0, Number(item.adultTickets) || 0) + Math.max(0, Number(item.childTickets) || 0),
+          memo: item.memo || '',
+          timeStr: item.timeStr || defaultTimeStr,
+          createdAt: Date.now() + idx
+        };
+        newlyAdded.push(newRec);
+      });
+
+      allRecords = [...newlyAdded.reverse(), ...allRecords];
+      saveLocalBackup();
+      filterRecordsForActiveWedding();
+      closeExcelUploadModal();
+
+      const dupMsg = skippedDuplicates > 0 ? ` (중복 ${skippedDuplicates}건 자동 제외)` : '';
+      showToast(`엑셀 장부 ${newlyAdded.length}건이 성공적으로 반영되었습니다!${dupMsg}`, 'success');
+
+      // 클라우드 전체 스냅샷 및 Firestore 즉시 동기화 (PC ↔ 모바일 100% 반영)
+      await uploadFullSnapshotToCloud(true);
+      await syncLocalDataToCloud();
+    }
+
+    // ==============================================================
     // PDF & 인쇄용 A4 세로형 다중 페이지 장부 빌더
     // ==============================================================
     function handlePdfDownloadClick() {
@@ -6429,6 +7032,16 @@
     window.openExcelExportModal = openExcelExportModal;
     window.closeExcelExportModal = closeExcelExportModal;
     window.executeExcelExport = executeExcelExport;
+
+    window.openExcelUploadModal = openExcelUploadModal;
+    window.closeExcelUploadModal = closeExcelUploadModal;
+    window.handleExcelDragOver = handleExcelDragOver;
+    window.handleExcelDragLeave = handleExcelDragLeave;
+    window.handleExcelDrop = handleExcelDrop;
+    window.handleExcelFileSelect = handleExcelFileSelect;
+    window.reparseLastExcelFileIfLoaded = reparseLastExcelFileIfLoaded;
+    window.downloadSampleUploadTemplate = downloadSampleUploadTemplate;
+    window.commitExcelUploadRecords = commitExcelUploadRecords;
 
     window.handlePdfDownloadClick = handlePdfDownloadClick;
     window.openPdfExportModal = openPdfExportModal;
