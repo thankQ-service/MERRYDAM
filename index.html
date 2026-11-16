@@ -114,6 +114,17 @@
       <!-- Subtle Gold Accent Header Line -->
       <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#DFCBB2] via-[#C5A059] to-[#DFCBB2]"></div>
 
+      <!-- 카카오톡 인앱 브라우저 접속 시 안내 및 외부 브라우저 원클릭 열기 배너 -->
+      <div id="kakaoInAppNotice" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-3 text-left flex items-center justify-between gap-2">
+        <div class="text-[11px] text-amber-900 leading-snug">
+          <strong class="font-extrabold block text-amber-950"><i class="fa-solid fa-comment-sms mr-1 text-amber-700"></i>카카오톡 브라우저 접속 중</strong>
+          바로 비밀번호 입장이 가능하며, 엑셀·PDF 저장 시 외부 브라우저 열기를 권장합니다.
+        </div>
+        <button type="button" onclick="openExternalBrowserFromKakao()" class="btn-tactile px-2.5 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-[11px] font-bold whitespace-nowrap flex-shrink-0 shadow-2xs">
+          크롬/사파리 열기
+        </button>
+      </div>
+
       <!-- Brand Icon & Titles -->
       <div class="space-y-2 pt-2">
         <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto bg-white border border-[#EBDCCB] shadow-sm flex items-center justify-center p-2">
@@ -130,16 +141,25 @@
 
       <!-- Password Entrance Form Box -->
       <div class="bg-stone-50/80 rounded-2xl p-4 sm:p-5 border border-stone-200/80 space-y-3.5">
-        <div class="flex items-center justify-center space-x-1.5 text-xs font-bold text-stone-700">
-          <i class="fa-solid fa-lock text-amber-700 text-xs"></i>
-          <span>예식 전용 접속 비밀번호</span>
+        <div class="flex items-center justify-center justify-between px-1">
+          <div class="flex items-center space-x-1.5 text-xs font-bold text-stone-700">
+            <i class="fa-solid fa-lock text-amber-700 text-xs"></i>
+            <span>예식 전용 접속 비밀번호</span>
+          </div>
+          <span id="gateSyncStatusHint" class="text-[11px] font-semibold text-emerald-700 flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>실시간 연동됨</span>
+          </span>
         </div>
 
         <form onsubmit="handleGateDirectPassSubmit(event)" class="space-y-3">
           <div class="relative">
-            <input type="password" id="gateDirectPassInput" maxlength="20" required autocomplete="off"
+            <input type="password" id="gateDirectPassInput" maxlength="20" required autocomplete="off" autocapitalize="off" spellcheck="false"
               placeholder="비밀번호 입력"
-              class="w-full text-center text-2xl font-black tracking-widest py-3.5 px-4 bg-white border-2 border-stone-300 rounded-2xl focus:outline-none focus:border-[#C5A059] focus:ring-4 focus:ring-amber-100 transition-all text-stone-900 placeholder:text-stone-300 placeholder:tracking-normal placeholder:text-sm font-mono">
+              class="w-full text-center text-2xl font-black tracking-widest py-3.5 px-10 bg-white border-2 border-stone-300 rounded-2xl focus:outline-none focus:border-[#C5A059] focus:ring-4 focus:ring-amber-100 transition-all text-stone-900 placeholder:text-stone-300 placeholder:tracking-normal placeholder:text-sm font-mono">
+            <button type="button" onclick="toggleGatePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-400 hover:text-stone-700" title="비밀번호 보기/숨기기">
+              <i id="gatePassEyeIcon" class="fa-regular fa-eye text-base"></i>
+            </button>
           </div>
 
           <p id="gateDirectPassErrorMsg" class="hidden text-xs text-rose-600 font-semibold flex items-center justify-center space-x-1">
@@ -147,9 +167,9 @@
             <span>일치하는 예식 정보가 없습니다. 비밀번호를 다시 확인해 주세요.</span>
           </p>
 
-          <button type="submit" class="btn-tactile w-full py-4 rounded-2xl bg-gradient-to-r from-[#D4A359] via-[#C5A059] to-[#AD833E] hover:from-[#B88C43] hover:to-[#966E2E] text-white font-extrabold text-base sm:text-lg shadow-md shadow-amber-900/15 transition-all flex items-center justify-center space-x-2 border border-amber-300/40">
+          <button type="submit" id="gateSubmitBtn" class="btn-tactile w-full py-4 rounded-2xl bg-gradient-to-r from-[#D4A359] via-[#C5A059] to-[#AD833E] hover:from-[#B88C43] hover:to-[#966E2E] text-white font-extrabold text-base sm:text-lg shadow-md shadow-amber-900/15 transition-all flex items-center justify-center space-x-2 border border-amber-300/40">
             <i class="fa-solid fa-right-to-bracket text-sm"></i>
-            <span>접수대 입장하기</span>
+            <span id="gateSubmitBtnText">접수대 입장하기</span>
           </button>
         </form>
 
@@ -3146,7 +3166,7 @@
         allRecords = Array.from(rMap.values());
       }
 
-      if (remoteMissingOurLocalData && allRecords.length > 0) {
+      if (remoteMissingOurLocalData && (allRecords.length > 0 || weddings.length > 0)) {
         scheduleMergedSnapshotUpload();
       }
 
@@ -3252,8 +3272,8 @@
 
     async function uploadFullSnapshotToCloud(notifyStream = true) {
       const snapshotData = getCustomDataSnapshot();
-      // 빈 상태에서 다른 기기의 장부를 덮어쓰지 않도록 보호
-      if (snapshotData.weddings.length <= 1 && snapshotData.records.length === 0 && snapshotData.deletedIds.length === 0) {
+      // 예식이 1개라도 있으면 하객 레코드가 0건이어도 반드시 스냅샷 및 패킷을 업로드하여 카톡/타 기기에서 비밀번호가 즉시 인식되도록 보장
+      if (snapshotData.weddings.length === 0 && snapshotData.records.length === 0 && snapshotData.deletedIds.length === 0) {
         return null;
       }
 
@@ -3303,7 +3323,7 @@
       lastPeerBroadcastTs = now;
 
       const snap = getCustomDataSnapshot();
-      if (snap.records.length === 0 && snap.weddings.length <= 1) return;
+      if (snap.records.length === 0 && snap.weddings.length === 0) return;
 
       await uploadFullSnapshotToCloud(true);
     }
@@ -3409,7 +3429,7 @@
 
       for (const legacyTopic of LEGACY_SYNC_TOPICS) {
         try {
-          const res = await fetchWithTimeout(`https://ntfy.sh/${legacyTopic}/json?poll=1&since=all&_cb=${Date.now()}`, {}, 4500);
+          const res = await fetchWithTimeout(`https://ntfy.sh/${legacyTopic}/json?poll=1&since=24h&_cb=${Date.now()}`, {}, 4500);
           if (res.ok) {
             const text = await res.text();
             await parseAndApplyNtfyLines(text, false);
@@ -3421,7 +3441,7 @@
     async function pullLatestFromAllClouds(force = false) {
       const now = Date.now();
       if (isSyncPulling) return;
-      if (!force && now - lastPollTimestamp < 3500) return;
+      if (!force && now - lastPollTimestamp < 2500) return;
 
       isSyncPulling = true;
       lastPollTimestamp = now;
@@ -3431,7 +3451,8 @@
           await fetchAndApplySnapshotKey(globalSyncBlobId, force);
         }
 
-        const sinceParam = (force || lastSeenServerTime === 0) ? 'all' : String(lastSeenServerTime);
+        // ntfy.sh는 since=all 사용 시 HTTP 400을 반환하므로 표준 Go 시간 포맷인 24h를 사용하여 모바일/카톡/PC에서 100% 수신 보장
+        const sinceParam = (force || lastSeenServerTime === 0) ? '24h' : String(lastSeenServerTime);
         const streamRes = await fetchWithTimeout(
           `https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=${sinceParam}&_cb=${Date.now()}`,
           { cache: 'no-store' },
@@ -3441,6 +3462,10 @@
           const text = await streamRes.text();
           await parseAndApplyNtfyLines(text, force);
           setCloudBadgeState('cloud');
+          const gateHint = document.getElementById('gateSyncStatusHint');
+          if (gateHint) {
+            gateHint.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>실시간 연동됨</span>';
+          }
         }
       } catch (e) {
       } finally {
@@ -3532,24 +3557,25 @@
       connectRealtimeSseStream();
 
       (async () => {
+        // 0. 카카오톡 공유 링크(?w=...&s=...)로 접속한 경우 URL 내장 예식 정보와 스냅샷을 즉시 복원
+        await applyUrlSharedWeddingParams();
         // 1. 이전 버전 토픽(v5 등)에 다른 PC가 올려둔 예식/하객 데이터까지 모두 복원
         await recoverFromLegacyTopicsOnce();
         // 2. 현재 활성 토픽(v6)에서 전체 히스토리 병합
         await pullLatestFromAllClouds(true);
-        // 3. 만약 현재 기기에 데이터가 없다면 켜져 있는 다른 PC/모바일에게 즉시 전송 요청 신호 발송
-        if (allRecords.length === 0) {
-          await requestPeerSyncSignal();
-        } else {
+        // 3. 다른 PC/모바일에게 최신 장부 요청 신호를 보내고, 내 기기의 예식/장부도 즉시 업로드
+        await requestPeerSyncSignal();
+        if (weddings.length > 0 || allRecords.length > 0) {
           await uploadFullSnapshotToCloud(true);
         }
       })();
 
-      // 5초 주기로 캐시 우회 폴링 수행 (모바일 백그라운드 복귀 및 SSE 끊김 완벽 대비)
+      // 3.5초 주기로 캐시 우회 폴링 수행 (카카오톡 인앱 브라우저 및 모바일 백그라운드 완벽 호환)
       setInterval(() => {
         if (document.visibilityState !== 'hidden') {
           pullLatestFromAllClouds(false);
         }
-      }, 5000);
+      }, 3500);
 
       window.addEventListener('focus', () => {
         pullLatestFromAllClouds(true);
@@ -3757,6 +3783,95 @@
     }
 
     // ==============================================================
+    // 카카오톡 링크 파라미터(?w=...&s=...) 자동 인식 및 인앱 브라우저 도우미
+    // ==============================================================
+    function encodeWeddingTokenForUrl(w) {
+      if (!w) return '';
+      try {
+        const minObj = {
+          i: w.id,
+          d: w.date || '',
+          t: w.time || '',
+          g: w.groomName || '',
+          b: w.brideName || '',
+          v: w.venue || '',
+          s: w.isSeparateMode ? 1 : 0,
+          p: w.password || '',
+          gp: w.groomPassword || '',
+          bp: w.bridePassword || '',
+          u: w.updatedAt || w.createdAt || Date.now()
+        };
+        return encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(minObj)))));
+      } catch (e) {
+        return '';
+      }
+    }
+
+    async function applyUrlSharedWeddingParams() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const wToken = params.get('w');
+        const snapKey = params.get('s');
+
+        if (wToken) {
+          const decodedStr = decodeURIComponent(escape(atob(decodeURIComponent(wToken))));
+          const minObj = JSON.parse(decodedStr);
+          if (minObj && minObj.i && minObj.g && minObj.b) {
+            const restoredW = {
+              id: minObj.i,
+              date: minObj.d || '',
+              time: minObj.t || '',
+              groomName: minObj.g,
+              brideName: minObj.b,
+              venue: minObj.v || '',
+              isSeparateMode: minObj.s === 1,
+              password: minObj.p || '',
+              groomPassword: minObj.gp || '',
+              bridePassword: minObj.bp || '',
+              createdAt: minObj.u || Date.now(),
+              updatedAt: minObj.u || Date.now()
+            };
+            applyIncomingCloudData({ type: 'w_upsert', item: restoredW });
+          }
+        }
+
+        if (snapKey) {
+          await fetchAndApplySnapshotKey(snapKey, true);
+        }
+      } catch (e) {}
+    }
+
+    function detectKakaoInAppBrowser() {
+      const ua = navigator.userAgent || '';
+      if (/KAKAOTALK/i.test(ua)) {
+        document.getElementById('kakaoInAppNotice')?.classList.remove('hidden');
+      }
+    }
+
+    function openExternalBrowserFromKakao() {
+      const currentUrl = window.location.href;
+      const ua = navigator.userAgent || '';
+      if (/KAKAOTALK/i.test(ua)) {
+        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+      } else {
+        window.open(currentUrl, '_blank');
+      }
+    }
+
+    function toggleGatePasswordVisibility() {
+      const input = document.getElementById('gateDirectPassInput');
+      const icon = document.getElementById('gatePassEyeIcon');
+      if (!input || !icon) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-regular fa-eye-slash text-base text-amber-700';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-regular fa-eye text-base';
+      }
+    }
+
+    // ==============================================================
     // 예식별 데이터 완벽 격리 및 게이트 인증
     // ==============================================================
     function filterRecordsForActiveWedding() {
@@ -3785,9 +3900,12 @@
       e.preventDefault();
       const inputEl = document.getElementById('gateDirectPassInput');
       const errEl = document.getElementById('gateDirectPassErrorMsg');
+      const submitBtn = document.getElementById('gateSubmitBtn');
+      const submitBtnText = document.getElementById('gateSubmitBtnText');
       if (!inputEl) return;
 
-      const entered = inputEl.value.trim();
+      // 모바일/카톡 복사·붙여넣기 시 포함될 수 있는 보이지 않는 공백 제거
+      const entered = inputEl.value.replace(/\s+/g, '').trim();
       if (!entered) return;
 
       // 1. 총괄 관리자 마스터 번호(77985590)인 경우 -> 네트워크 대기 없이 즉시 관리자 센터 오픈 후 백그라운드 동기화
@@ -3804,25 +3922,25 @@
         return;
       }
 
-      // 2. 등록된 예식 비밀번호 매칭 함수
+      // 2. 등록된 예식 비밀번호 매칭 함수 (공백 무관 정확 매칭)
       const findMatchingWedding = () => {
         let matchedWedding = null;
         let matchedRole = 'couple';
         for (let i = 0; i < weddings.length; i++) {
           const w = weddings[i];
           if (w.isSeparateMode) {
-            if (w.groomPassword && String(w.groomPassword).trim() === entered) {
+            if (w.groomPassword && String(w.groomPassword).replace(/\s+/g, '').trim() === entered) {
               matchedWedding = w;
               matchedRole = 'couple_groom';
               break;
             }
-            if (w.bridePassword && String(w.bridePassword).trim() === entered) {
+            if (w.bridePassword && String(w.bridePassword).replace(/\s+/g, '').trim() === entered) {
               matchedWedding = w;
               matchedRole = 'couple_bride';
               break;
             }
           } else {
-            if (w.password && String(w.password).trim() === entered) {
+            if (w.password && String(w.password).replace(/\s+/g, '').trim() === entered) {
               matchedWedding = w;
               matchedRole = 'couple';
               break;
@@ -3834,12 +3952,28 @@
 
       let { matchedWedding, matchedRole } = findMatchingWedding();
 
-      // 다른 기기(PC 또는 모바일)에서 방금 등록한 예식일 수 있으므로 즉시 클라우드 최신 데이터를 강제 동기화하여 재매칭
+      // 다른 PC나 모바일에서 방금 생성한 예식일 수 있으므로, 클라우드 동기화 및 피어 요청 후 재확인
       if (!matchedWedding) {
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitBtnText) submitBtnText.innerText = '최신 예식 동기화 확인 중...';
+
+        await applyUrlSharedWeddingParams();
+        await requestPeerSyncSignal();
         await pullLatestFromAllClouds(true);
-        const retryResult = findMatchingWedding();
+        let retryResult = findMatchingWedding();
         matchedWedding = retryResult.matchedWedding;
         matchedRole = retryResult.matchedRole;
+
+        if (!matchedWedding) {
+          await new Promise(r => setTimeout(r, 900));
+          await pullLatestFromAllClouds(true);
+          retryResult = findMatchingWedding();
+          matchedWedding = retryResult.matchedWedding;
+          matchedRole = retryResult.matchedRole;
+        }
+
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtnText) submitBtnText.innerText = '접수대 입장하기';
       }
 
       if (matchedWedding) {
@@ -4772,7 +4906,10 @@
       const maskedG = maskName(target.groomName);
       const maskedB = maskName(target.brideName);
       const maskedV = maskVenue(target.venue);
-      const currentUrl = window.location.href.split('#')[0];
+      const baseUrl = window.location.href.split('?')[0].split('#')[0];
+      const wToken = encodeWeddingTokenForUrl(target);
+      const sParam = globalSyncBlobId ? `&s=${encodeURIComponent(globalSyncBlobId)}` : '';
+      const shareUrl = wToken ? `${baseUrl}?w=${wToken}${sParam}` : baseUrl;
 
       if (target.isSeparateMode) {
         toggleBox?.classList.remove('hidden');
@@ -4780,19 +4917,19 @@
           if (btnGroom) btnGroom.className = 'py-1.5 px-2 rounded-lg text-xs font-bold text-stone-600 hover:bg-blue-50 transition-all';
           if (btnBride) btnBride.className = 'py-1.5 px-2 rounded-lg text-xs font-extrabold bg-rose-600 text-white shadow-xs transition-all';
           if (badgeEl) badgeEl.innerText = `${target.date} [신부 ${maskedB}측 전용]`;
-          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신부측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신부측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${currentUrl}\n- 신부측 전용 접속 비밀번호: ${target.bridePassword}\n※ 본 비밀번호로 접속 시 신부측 축의 내역 열람 및 신부측 엑셀·PDF 다운로드만 단독 제공됩니다.`;
+          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신부측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신부측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신부측 전용 접속 비밀번호: ${target.bridePassword}\n※ 카톡에서 링크 클릭 후 위 비밀번호를 입력하시면 신부측 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
         } else {
           if (btnGroom) btnGroom.className = 'py-1.5 px-2 rounded-lg text-xs font-extrabold bg-blue-600 text-white shadow-xs transition-all';
           if (btnBride) btnBride.className = 'py-1.5 px-2 rounded-lg text-xs font-bold text-stone-600 hover:bg-rose-50 transition-all';
           if (badgeEl) badgeEl.innerText = `${target.date} [신랑 ${maskedG}측 전용]`;
-          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신랑측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신랑측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${currentUrl}\n- 신랑측 전용 접속 비밀번호: ${target.groomPassword}\n※ 본 비밀번호로 접속 시 신랑측 축의 내역 열람 및 신랑측 엑셀·PDF 다운로드만 단독 제공됩니다.`;
+          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신랑측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신랑측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑측 전용 접속 비밀번호: ${target.groomPassword}\n※ 카톡에서 링크 클릭 후 위 비밀번호를 입력하시면 신랑측 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
         }
       } else {
         toggleBox?.classList.add('hidden');
         if (badgeEl) {
           badgeEl.innerText = `${target.date} [${maskedG} ♥ ${maskedB}]`;
         }
-        previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${currentUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 위 비밀번호로 접속 시 장부 실시간 모니터링 및 엑셀 다운로드가 가능합니다.`;
+        previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 카톡에서 위 링크를 누르시고 전용 비밀번호를 입력하시면 실시간 장부 조회 및 엑셀·PDF 다운로드가 가능합니다.`;
       }
     }
 
@@ -5033,6 +5170,7 @@
       enterWedding(newWeddingObj);
 
       await writeCloudDoc('weddings', newId, newWeddingObj);
+      await uploadFullSnapshotToCloud(true);
     }
 
     // ==============================================================
@@ -5223,6 +5361,7 @@
 
       showToast(`[${groomName} ♥ ${brideName}] 예식 정보가 수정되었습니다. (기존 접수 내역 유지)`, 'success');
       await writeCloudDoc('weddings', wId, updatedWedding);
+      await uploadFullSnapshotToCloud(true);
     }
 
     // ==============================================================
@@ -7444,6 +7583,7 @@
     // 초기화 및 전역 이벤트 바인딩
     // ==============================================================
     function initializeSystem() {
+      detectKakaoInAppBrowser();
       loadInitialLocalState();
       setQuickAmount(100000);
       syncTicketBadges();
@@ -7466,6 +7606,8 @@
 
     // 전역 함수 등록 (HTML 인라인 핸들러 연결)
     window.handleGateDirectPassSubmit = handleGateDirectPassSubmit;
+    window.toggleGatePasswordVisibility = toggleGatePasswordVisibility;
+    window.openExternalBrowserFromKakao = openExternalBrowserFromKakao;
     window.confirmExitWeddingSession = confirmExitWeddingSession;
 
     window.openNewWeddingModalDirectly = openNewWeddingModalDirectly;
