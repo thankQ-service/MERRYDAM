@@ -3018,6 +3018,25 @@
       };
     }
 
+    function getLocalLedgerDigest() {
+      let gCount = 0;
+      let bCount = 0;
+      let totalCount = 0;
+      for (let i = 0; i < allRecords.length; i++) {
+        const r = allRecords[i];
+        if (!r || isDummyTestRecord(r) || deletedIdsSet.has(r.id) || deletedIdsSet.has(r.weddingId)) continue;
+        totalCount++;
+        if (r.side === 'groom') gCount++;
+        else if (r.side === 'bride') bCount++;
+      }
+      return {
+        wCount: weddings.filter(w => !isDummyTestWedding(w) && !deletedIdsSet.has(w.id)).length,
+        totalCount,
+        groomCount: gCount,
+        brideCount: bCount
+      };
+    }
+
     function notifyLocalTabs() {
       try {
         if (localBroadcastChannel) {
@@ -3036,7 +3055,7 @@
       if (payload.type === 'compact_sync') {
         const unpacked = unpackCompactSyncPayload(payload);
         if (unpacked) {
-          payload = unpacked;
+          payload = { ...unpacked, digest: payload.digest, sender: payload.sender };
         }
       }
 
@@ -3180,12 +3199,27 @@
         allRecords = Array.from(rMap.values());
       }
 
+      const prevCount = records.length;
+      consolidateWeddingsAndRecords();
+
+      // 핵심: 상대방 기기(예: 신부측 접수대)가 단건 접수(r_upsert)나 패킷을 보냈을 때,
+      // 상대방의 신랑측/신부측 건수(payload.digest)보다 내 기기가 가진 건수가 더 많다면
+      // 상대방 기기에 내 기기의 데이터(예: 신랑측 내역)가 누락된 상태이므로 즉시 합본 전체 장부를 클라우드로 재전송합니다!
+      if (payload.digest && payload.sender && payload.sender !== CLIENT_INSTANCE_ID) {
+        const myDigest = getLocalLedgerDigest();
+        if (
+          myDigest.groomCount > (payload.digest.groomCount || 0) ||
+          myDigest.brideCount > (payload.digest.brideCount || 0) ||
+          myDigest.totalCount > (payload.digest.totalCount || 0) ||
+          myDigest.wCount > (payload.digest.wCount || 0)
+        ) {
+          remoteMissingOurLocalData = true;
+        }
+      }
+
       if (remoteMissingOurLocalData && (allRecords.length > 0 || weddings.length > 0)) {
         scheduleMergedSnapshotUpload();
       }
-
-      const prevCount = records.length;
-      consolidateWeddingsAndRecords();
 
       if (changed || prevCount !== records.length) {
         sortWeddingsByRecent();
@@ -3229,7 +3263,7 @@
       if (mergedSnapshotUploadTimer) clearTimeout(mergedSnapshotUploadTimer);
       mergedSnapshotUploadTimer = setTimeout(() => {
         uploadFullSnapshotToCloud(true);
-      }, 2800);
+      }, 1800);
     }
 
     async function fetchWithTimeout(url, options = {}, timeoutMs = 5500) {
@@ -3310,9 +3344,8 @@
       } catch (e) {}
 
       if (notifyStream) {
-        // 1. 직접 압축 패킷을 스트림에 함께 발송하여 bytebin 접속이 막힌 모바일 통신사 환경에서도 100% 수신 보장
-        await broadcastCompactPacketsDirect();
-        // 2. bytebin 스냅샷 키도 함께 기록
+        const myDigest = getLocalLedgerDigest();
+        // 1. bytebin 스냅샷 업로드가 성공했고 데이터가 많을 때는 가벼운 snapshot_ptr로 전송하여 웨딩홀 동일 Wi-Fi 속도제한(HTTP 429) 원천 방지
         if (uploadedKey) {
           try {
             await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
@@ -3321,11 +3354,16 @@
               body: JSON.stringify({
                 type: 'snapshot_ptr',
                 key: uploadedKey,
+                digest: myDigest,
                 sender: CLIENT_INSTANCE_ID,
                 ts: Date.now()
               })
             }, 4000);
           } catch (e) {}
+        }
+        // 2. bytebin 접근이 제한된 모바일/인앱 환경이거나 건수가 50건 이하일 때는 직접 압축 패킷도 함께 전송하여 100% 수신 보장
+        if (!uploadedKey || snapshotData.records.length <= 50) {
+          await broadcastCompactPacketsDirect();
         }
       }
       return uploadedKey;
@@ -3345,9 +3383,10 @@
     async function broadcastGlobalEvent(eventObj) {
       notifyLocalTabs();
 
-      // 1. 단건 이벤트(신규 접수/수정/예식 등록)를 즉시 먼저 전송하여 상대방 화면에 0.2초 내 실시간 표시
+      // 1. 단건 이벤트(신규 접수/수정/예식 등록)에 현재 내 기기의 신랑·신부 건수 요약(digest)을 동봉하여 즉시 전송
       const immediatePayload = {
         ...eventObj,
+        digest: getLocalLedgerDigest(),
         sender: CLIENT_INSTANCE_ID,
         ts: Date.now()
       };
@@ -3364,7 +3403,7 @@
         setCloudBadgeState('cloud');
       } catch (e) {}
 
-      // 2. 이어서 전체 장부 압축 패킷 및 스냅샷을 백그라운드로 동기화하여 누락 0% 보장
+      // 2. 이어서 전체 장부 합본 스냅샷을 백그라운드로 동기화하여 누락 0% 보장
       scheduleMergedSnapshotUpload();
     }
 
@@ -3377,6 +3416,9 @@
 
         if (payload.type === 'snapshot_ptr' && payload.key) {
           await fetchAndApplySnapshotKey(payload.key);
+          if (payload.digest) {
+            applyIncomingCloudData({ digest: payload.digest, sender: payload.sender });
+          }
           return;
         }
 
@@ -5827,9 +5869,8 @@
 
       const recentEl = document.getElementById('recentEntriesList');
       if (recentEl) {
-        const effectiveAdminSide = getEffectiveAdminSide();
-        const recentSource = effectiveAdminSide ? records.filter(r => r.side === effectiveAdminSide) : records;
-        const recentFive = recentSource.slice(0, 5);
+        // 관리자가 [신랑측 전용 등록] 또는 [신부측 전용 등록]으로 입력 중이더라도 우측 현황 및 최근 내역에서는 양측 모두 표시
+        const recentFive = records.slice(0, 5);
         if (recentFive.length === 0) {
           recentEl.innerHTML = `
             <div class="text-center py-8 text-stone-400 text-xs">
