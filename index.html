@@ -363,6 +363,178 @@
   </div>
 
   <!-- ============================================================== -->
+  <!-- 0-2B. 기존 예식 정보 수정 모달 (관리자 전용 - 기존 데이터 100% 유지) -->
+  <!-- ============================================================== -->
+  <div id="editWeddingModal" class="fixed inset-0 z-[80] hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-7 border border-[#EADBCA] shadow-elevated my-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-stone-200">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 text-sm">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-stone-900">예식 정보 수정</h3>
+            <p class="text-xs text-stone-500">접수된 장부 내역은 그대로 유지되며 예식 정보만 안전하게 변경됩니다</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeEditWeddingModal()" class="text-stone-400 hover:text-stone-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="editWeddingForm" onsubmit="handleEditWeddingSubmit(event)" class="mt-4 space-y-4">
+        <input type="hidden" id="editWeddingId">
+
+        <!-- 예식 일자 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            예식 날짜 <span class="text-rose-500">*</span>
+          </label>
+          <input type="date" id="editWeddingDate" required
+            class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+        </div>
+
+        <!-- 예식 시간 -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-stone-700">
+              예식 시간 <span class="text-rose-500">*</span>
+            </label>
+            <span class="text-[11px] text-amber-800 font-semibold" id="editWeddingTimePreview">선택된 시간: 15:00 (3시)</span>
+          </div>
+
+          <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mb-2" id="editTimeChipsContainer">
+            <button type="button" onclick="selectEditQuickWeddingTime('11:00')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">11:00</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('11:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">11:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('12:00')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">12:00</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('12:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">12:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('13:00 (1시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">13:00 (1시)</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('13:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">13:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('14:00 (2시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">14:00 (2시)</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('14:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">14:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('15:00 (3시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">15:00 (3시)</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('15:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">15:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('16:00 (4시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">16:00 (4시)</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('16:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">16:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('17:00 (5시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">17:00 (5시)</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('17:30')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">17:30</button>
+            <button type="button" onclick="selectEditQuickWeddingTime('18:00 (6시)')" class="edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50">18:00 (6시)</button>
+          </div>
+
+          <input type="text" id="editWeddingTime" required placeholder="시간 직접 입력 (예: 15:00)"
+            class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+        </div>
+
+        <!-- 신랑 & 신부 성함 -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">
+              신랑 성함 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="editWeddingGroom" required placeholder="예: 전형민"
+              class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">
+              신부 성함 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="editWeddingBride" required placeholder="예: 최윤정"
+              class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+          </div>
+        </div>
+
+        <!-- 웨딩홀 및 장소 -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            예식장 / 웨딩홀 (선택)
+          </label>
+          <input type="text" id="editWeddingVenue" placeholder="예: 메리담 웨딩홀 1층 그랜드볼룸"
+            class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-800 focus:bg-white focus:border-[#C5A059] outline-none">
+        </div>
+
+        <!-- 신랑·신부 따로 관리 선택 옵션 -->
+        <div class="p-3.5 rounded-2xl bg-stone-50 border-2 border-stone-200/90 hover:border-amber-300 transition-colors">
+          <label for="editWeddingSeparateCheck" class="flex items-start space-x-3 cursor-pointer select-none">
+            <input type="checkbox" id="editWeddingSeparateCheck" onchange="toggleEditWeddingSeparateOption(this.checked)"
+              class="mt-0.5 w-4 h-4 rounded border-stone-300 text-[#C5A059] focus:ring-[#C5A059] accent-[#C5A059] cursor-pointer flex-shrink-0">
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-xs sm:text-sm font-extrabold text-stone-900">신랑 · 신부 따로 관리 (축의금 상호 비공개)</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 rounded border border-amber-200">관리방식 변경 가능</span>
+              </div>
+              <p class="text-[11px] text-stone-500 mt-1 leading-relaxed">
+                체크 해제 시 <strong>통합 관리(신랑·신부 모두 전체 내역 열람)</strong>로 작동하며, 체크 시 신랑·신부 각자 전용 비밀번호로 분리됩니다.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <!-- 통합 비밀번호 -->
+        <div id="editSinglePasswordSection" class="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-amber-900 flex items-center space-x-1.5">
+              <i class="fa-solid fa-key text-amber-700"></i>
+              <span>예식 접속 비밀번호 (통합) <span class="text-rose-500">*</span></span>
+            </label>
+            <button type="button" onclick="generateRandomPasscodeForEditWedding()"
+              class="btn-tactile text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-900">
+              랜덤 6자리 생성
+            </button>
+          </div>
+          <input type="text" id="editWeddingPassword" maxlength="20" placeholder="비밀번호 지정"
+            class="w-full px-3 py-2 bg-white border-2 border-amber-300 rounded-xl text-sm font-extrabold text-stone-900 text-center tracking-widest outline-none font-mono">
+        </div>
+
+        <!-- 별도 관리 비밀번호 -->
+        <div id="editSeparatePasswordSection" class="hidden space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="bg-blue-50/70 p-3.5 rounded-2xl border border-blue-200 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-blue-900 flex items-center space-x-1">
+                  <i class="fa-solid fa-user-tie text-blue-700"></i>
+                  <span>신랑 전용 비밀번호 <span class="text-rose-500">*</span></span>
+                </label>
+                <button type="button" onclick="generateRandomEditSeparatePasscode('groom')"
+                  class="btn-tactile text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-200/80 hover:bg-blue-300 text-blue-900">
+                  랜덤 생성
+                </button>
+              </div>
+              <input type="text" id="editWeddingGroomPassword" maxlength="20" placeholder="신랑 전용 비밀번호"
+                class="w-full px-3 py-2 bg-white border-2 border-blue-300 rounded-xl text-sm font-extrabold text-stone-900 text-center tracking-widest outline-none font-mono">
+            </div>
+
+            <div class="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-rose-900 flex items-center space-x-1">
+                  <i class="fa-solid fa-gem text-rose-600"></i>
+                  <span>신부 전용 비밀번호 <span class="text-rose-500">*</span></span>
+                </label>
+                <button type="button" onclick="generateRandomEditSeparatePasscode('bride')"
+                  class="btn-tactile text-[10px] font-bold px-2 py-0.5 rounded-lg bg-rose-200/80 hover:bg-rose-300 text-rose-900">
+                  랜덤 생성
+                </button>
+              </div>
+              <input type="text" id="editWeddingBridePassword" maxlength="20" placeholder="신부 전용 비밀번호"
+                class="w-full px-3 py-2 bg-white border-2 border-rose-300 rounded-xl text-sm font-extrabold text-stone-900 text-center tracking-widest outline-none font-mono">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeEditWeddingModal()"
+            class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold">
+            취소
+          </button>
+          <button type="submit"
+            class="px-5 py-2.5 rounded-xl bg-[#C5A059] hover:bg-[#B08B46] text-white text-xs font-bold shadow-md">
+            수정 내용 저장
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
   <!-- 1. 활성 예식 상단 헤더 (브랜드, 현재 예식 표시, 보안 엑셀 다운로드) -->
   <!-- ============================================================== -->
   <header class="bg-white/95 backdrop-blur-md border-b border-[#EBDCCB] sticky top-0 z-30 shadow-xs no-print">
@@ -386,12 +558,12 @@
 
       <!-- Right: Cloud Sync Status, Excel/PDF Export & Logout/Exit -->
       <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
-        <!-- Cloud Status Indicator -->
-        <div id="cloudStatusBadge" class="flex items-center space-x-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors whitespace-nowrap">
+        <!-- Cloud Status Indicator (클릭 시 즉시 수동 양방향 동기화 실행) -->
+        <button type="button" id="cloudStatusBadge" onclick="forceManualCloudSync()" title="클릭하면 PC·모바일 최신 데이터를 즉시 동기화합니다" class="btn-tactile flex items-center space-x-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors whitespace-nowrap cursor-pointer">
           <span id="cloudStatusDot" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span id="cloudStatusText" class="hidden md:inline">PC·모바일 실시간 연동 중</span>
           <span id="cloudStatusTextMobile" class="md:hidden">실시간 연동</span>
-        </div>
+        </button>
 
         <!-- Header Excel Export Button -->
         <button type="button" onclick="handleExcelDownloadClick()" 
@@ -588,16 +760,22 @@
       <!-- 관리자 전용: 신랑측 / 신부측 / 통합 접수 페이지 분리 전환 바 (입력 실수 원천 방지) -->
       <div id="adminDeskModeBar" class="hidden bg-white p-3.5 sm:p-4 rounded-3xl border-2 border-[#E8D9C5] shadow-sm">
         <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <div class="flex items-center space-x-2.5">
-            <div id="adminDeskModeIcon" class="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm flex-shrink-0">
-              <i class="fa-solid fa-sliders"></i>
-            </div>
-            <div>
-              <div class="flex items-center space-x-1.5">
-                <span class="text-xs sm:text-sm font-extrabold text-stone-900">관리자 접수 페이지 구분 선택</span>
-                <span id="adminDeskCurrentBadge" class="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-100 text-amber-900 border border-amber-200">통합 접수 페이지</span>
+          <div class="flex items-center justify-between md:justify-start space-x-2.5">
+            <div class="flex items-center space-x-2.5">
+              <div id="adminDeskModeIcon" class="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                <i class="fa-solid fa-sliders"></i>
               </div>
-              <p class="text-[11px] text-stone-500 mt-0.5">신랑측 또는 신부측 전용 페이지로 전환하면 해당 측으로만 고정되어 교차 입력 실수를 100% 방지합니다.</p>
+              <div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs sm:text-sm font-extrabold text-stone-900">관리자 접수 페이지 구분 선택</span>
+                  <span id="adminDeskCurrentBadge" class="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-100 text-amber-900 border border-amber-200">통합 접수 페이지</span>
+                  <button type="button" onclick="openEditWeddingModal()" class="btn-tactile px-2 py-0.5 text-[11px] font-bold rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 flex items-center space-x-1 shadow-2xs">
+                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                    <span>예식정보 수정</span>
+                  </button>
+                </div>
+                <p class="text-[11px] text-stone-500 mt-0.5">※ 아래 버튼은 <strong>현장 직원의 입력 실수 방지용(1번 구분 버튼 고정)</strong>입니다. <strong>[신랑측 전용 등록]</strong>으로 입력해도 통합관리 예식의 <strong>신랑·신부님께는 양측 내역이 모두 통합되어 보입니다.</strong></p>
+              </div>
             </div>
           </div>
 
@@ -758,9 +936,14 @@
                 <button type="button" onclick="setQuickAmount(1000000)" class="amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-stone-200 bg-stone-50/70 hover:bg-amber-50 font-bold text-stone-700 text-sm sm:text-base transition-all" data-amount="1000000">100만원</button>
               </div>
 
-              <!-- 직접 입력 토글 및 단축 버튼 -->
+              <!-- 직접 입력 토글 및 단축 버튼 (0원 빈봉투/계좌이체 원클릭 등록 포함) -->
               <div class="mt-3">
                 <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <button type="button" onclick="setQuickAmount(0)" id="zeroAmountBtn"
+                    class="amount-btn btn-tactile text-xs sm:text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-stone-300 bg-white hover:bg-amber-50 text-stone-700 transition-all flex items-center space-x-1.5 whitespace-nowrap flex-shrink-0" data-amount="0">
+                    <i class="fa-regular fa-envelope-open text-amber-700"></i>
+                    <span>0원 (빈봉투/이체)</span>
+                  </button>
                   <button type="button" id="customAmountToggleBtn" onclick="toggleCustomAmount()" 
                     class="btn-tactile text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg border border-stone-300 bg-stone-100 hover:bg-stone-200 text-stone-700 transition-all flex items-center space-x-1.5 whitespace-nowrap flex-shrink-0">
                     <i class="fa-solid fa-keyboard"></i>
@@ -1753,7 +1936,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-stone-600 mb-1">축의 금액 (원)</label>
-            <input type="number" id="editAmount" step="10000" min="0" required class="w-full px-3 py-2 bg-stone-50 border rounded-xl font-bold text-base text-amber-900">
+            <input type="number" id="editAmount" step="1000" min="0" required class="w-full px-3 py-2 bg-stone-50 border rounded-xl font-bold text-base text-amber-900">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -1892,6 +2075,8 @@
     let isSyncPulling = false;
     let lastPollTimestamp = 0;
     let lastPeerBroadcastTs = 0;
+    let mergedSnapshotUploadTimer = null;
+    const processedSnapshotKeys = new Set();
 
     let weddings = [];
     let allRecords = [];
@@ -1931,6 +2116,10 @@
     }
 
     function getRestrictedSide() {
+      // 통합 관리 예식(!activeWedding.isSeparateMode)인 경우에는 어떠한 경우에도 신랑/신부 열람 제한을 두지 않고 양측 모두 표시
+      if (activeWedding && !activeWedding.isSeparateMode) {
+        return null;
+      }
       if (currentUserRole === 'couple_groom') return 'groom';
       if (currentUserRole === 'couple_bride') return 'bride';
       return null;
@@ -2010,7 +2199,11 @@
       const amt = Math.max(0, Math.round(Number(amount) || 0));
       const labelEl = document.getElementById('amountKoreanText');
       if (labelEl) {
-        labelEl.innerText = `${numberToKorean(amt)} (${amt.toLocaleString()}원)`;
+        if (amt === 0) {
+          labelEl.innerText = '영원 (0원 · 빈봉투/계좌이체)';
+        } else {
+          labelEl.innerText = `${numberToKorean(amt)} (${amt.toLocaleString()}원)`;
+        }
       }
     }
 
@@ -2357,12 +2550,16 @@
           if (idx === -1) {
             weddings.unshift(w);
             changed = true;
-          } else if ((w.createdAt || 0) >= (weddings[idx].createdAt || 0)) {
-            const prevStr = JSON.stringify(weddings[idx]);
-            const nextObj = { ...weddings[idx], ...w };
-            if (prevStr !== JSON.stringify(nextObj)) {
-              weddings[idx] = nextObj;
-              changed = true;
+          } else {
+            const incomingTs = w.updatedAt || w.createdAt || 0;
+            const currentTs = weddings[idx].updatedAt || weddings[idx].createdAt || 0;
+            if (incomingTs >= currentTs) {
+              const prevStr = JSON.stringify(weddings[idx]);
+              const nextObj = { ...weddings[idx], ...w };
+              if (prevStr !== JSON.stringify(nextObj)) {
+                weddings[idx] = nextObj;
+                changed = true;
+              }
             }
           }
         }
@@ -2398,27 +2595,49 @@
         }
       }
 
+      let remoteMissingOurLocalData = false;
+
       if (Array.isArray(payload.weddings)) {
+        const incomingWIds = new Set(payload.weddings.map(w => w?.id).filter(Boolean));
         const wMap = new Map();
         weddings.forEach(w => {
-          if (!deletedIdsSet.has(w.id)) wMap.set(w.id, w);
+          if (!deletedIdsSet.has(w.id)) {
+            wMap.set(w.id, w);
+            if (w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !incomingWIds.has(w.id)) {
+              remoteMissingOurLocalData = true;
+            }
+          }
         });
         payload.weddings.forEach(w => {
           if (w && w.id && !deletedIdsSet.has(w.id)) {
             const existing = wMap.get(w.id);
-            if (!existing || JSON.stringify(existing) !== JSON.stringify(w)) {
+            if (!existing) {
+              wMap.set(w.id, w);
               changed = true;
+            } else {
+              const incomingTs = w.updatedAt || w.createdAt || 0;
+              const currentTs = existing.updatedAt || existing.createdAt || 0;
+              const merged = incomingTs >= currentTs ? { ...existing, ...w } : { ...w, ...existing };
+              if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+                changed = true;
+              }
+              wMap.set(w.id, merged);
             }
-            wMap.set(w.id, existing ? { ...existing, ...w } : w);
           }
         });
         weddings = Array.from(wMap.values());
       }
 
       if (Array.isArray(payload.records)) {
+        const incomingRIds = new Set(payload.records.map(r => r?.id).filter(Boolean));
         const rMap = new Map();
         allRecords.forEach(r => {
-          if (!deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) rMap.set(r.id, r);
+          if (!deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
+            rMap.set(r.id, r);
+            if (!String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_') && !incomingRIds.has(r.id)) {
+              remoteMissingOurLocalData = true;
+            }
+          }
         });
         payload.records.forEach(r => {
           if (r && r.id && !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
@@ -2430,6 +2649,12 @@
           }
         });
         allRecords = Array.from(rMap.values());
+      }
+
+      // 다른 기기(예: 신부측 기기)가 올린 스냅샷에 우리 기기(예: 신랑측 기기)의 데이터가 빠져 있었다면,
+      // 양쪽 데이터가 합쳐진 통합 스냅샷을 자동으로 재업로드하여 모든 기기(신랑·신부 휴대폰 포함)에서 양측 데이터가 모두 보이도록 보장
+      if (remoteMissingOurLocalData) {
+        scheduleMergedSnapshotUpload();
       }
 
       if (changed) {
@@ -2444,7 +2669,17 @@
             exitWeddingToGate();
           } else {
             const updatedW = weddings.find(w => w.id === activeWedding.id);
-            if (updatedW) activeWedding = updatedW;
+            if (updatedW) {
+              const prevSeparate = activeWedding.isSeparateMode;
+              activeWedding = updatedW;
+              if (prevSeparate !== updatedW.isSeparateMode) {
+                if (!updatedW.isSeparateMode && isReadOnlyCoupleRole()) {
+                  currentUserRole = 'couple';
+                  sessionStorage.setItem('merrydam_user_role', 'couple');
+                }
+                applyRolePermissionsUI();
+              }
+            }
             filterRecordsForActiveWedding();
           }
         } else {
@@ -2454,7 +2689,14 @@
       return changed;
     }
 
-    async function fetchWithTimeout(url, options = {}, timeoutMs = 3500) {
+    function scheduleMergedSnapshotUpload() {
+      if (mergedSnapshotUploadTimer) clearTimeout(mergedSnapshotUploadTimer);
+      mergedSnapshotUploadTimer = setTimeout(() => {
+        uploadFullSnapshotToCloud(true);
+      }, 1200);
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -2464,15 +2706,17 @@
       }
     }
 
-    async function fetchAndApplySnapshotKey(key) {
+    async function fetchAndApplySnapshotKey(key, forceFetch = false) {
       if (!key || typeof key !== 'string') return false;
+      if (!forceFetch && processedSnapshotKeys.has(key)) return false;
       try {
         const res = await fetchWithTimeout(`https://bytebin.lucko.me/${encodeURIComponent(key)}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
-        }, 3500);
+        }, 4500);
         if (res.ok) {
           const snap = await res.json();
+          processedSnapshotKeys.add(key);
           globalSyncBlobId = key;
           try { localStorage.setItem(LOCAL_BLOB_ID_KEY, key); } catch (e) {}
           return applyIncomingCloudData(snap);
@@ -2481,29 +2725,32 @@
       return false;
     }
 
-    async function uploadFullSnapshotToCloud() {
+    async function uploadFullSnapshotToCloud(notifyStream = true) {
       try {
         const snapshotData = getCustomDataSnapshot();
         const postRes = await fetchWithTimeout('https://bytebin.lucko.me/post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(snapshotData)
-        }, 3500);
+        }, 4500);
         if (postRes.ok) {
           const json = await postRes.json();
           if (json && json.key) {
             globalSyncBlobId = json.key;
+            processedSnapshotKeys.add(globalSyncBlobId);
             try { localStorage.setItem(LOCAL_BLOB_ID_KEY, globalSyncBlobId); } catch (e) {}
-            await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-              body: JSON.stringify({
-                type: 'snapshot_ptr',
-                key: globalSyncBlobId,
-                sender: CLIENT_INSTANCE_ID,
-                ts: Date.now()
-              })
-            }, 3000);
+            if (notifyStream) {
+              await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                body: JSON.stringify({
+                  type: 'snapshot_ptr',
+                  key: globalSyncBlobId,
+                  sender: CLIENT_INSTANCE_ID,
+                  ts: Date.now()
+                })
+              }, 3500);
+            }
             return globalSyncBlobId;
           }
         }
@@ -2513,72 +2760,49 @@
 
     async function broadcastLocalStateToPeers() {
       const now = Date.now();
-      if (now - lastPeerBroadcastTs < 2500) return;
+      if (now - lastPeerBroadcastTs < 3000) return;
       lastPeerBroadcastTs = now;
 
       const snap = getCustomDataSnapshot();
       if (snap.weddings.length === 0 && snap.records.length === 0 && snap.deletedIds.length === 0) return;
 
-      // 1. 전체 스냅샷 업로드 및 포인터 브로드캐스트
-      await uploadFullSnapshotToCloud();
-
-      // 2. 개별 예식 정보를 소형 패킷으로 즉시 전송 (4KB 제한 안전 통과)
-      for (const w of snap.weddings) {
-        try {
-          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-            body: JSON.stringify({
-              type: 'w_upsert',
-              item: w,
-              sender: CLIENT_INSTANCE_ID,
-              ts: Date.now()
-            })
-          }, 3000);
-        } catch (e) {}
-      }
-
-      // 3. 커스텀 접수 내역을 8건씩 분할 패킷으로 전송하여 모바일·PC 누락 원천 방지
-      const chunkSize = 8;
-      for (let i = 0; i < snap.records.length; i += chunkSize) {
-        const chunk = snap.records.slice(i, i + chunkSize);
-        try {
-          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-            body: JSON.stringify({
-              type: 'batch_sync',
-              records: chunk,
-              deletedIds: snap.deletedIds,
-              sender: CLIENT_INSTANCE_ID,
-              ts: Date.now()
-            })
-          }, 3000);
-        } catch (e) {}
-      }
+      // 다중 루프 전송으로 인한 HTTP 429(속도 제한)를 방지하기 위해 전체 통합 스냅샷 1회 업로드 + 포인터 1회 전송으로 처리
+      await uploadFullSnapshotToCloud(true);
     }
 
     async function broadcastGlobalEvent(eventObj) {
+      // 1. 먼저 현재 기기의 전체 스냅샷을 bytebin에 저장하여 최신 key를 확보 (ntfy에는 단 1회만 전송하여 HTTP 429 차단 완벽 예방)
+      const latestKey = await uploadFullSnapshotToCloud(false);
+
       const payloadWithSender = {
         ...eventObj,
+        key: latestKey || globalSyncBlobId || '',
         sender: CLIENT_INSTANCE_ID,
         ts: Date.now()
       };
 
       try {
         const bodyStr = JSON.stringify(payloadWithSender);
-        if (bodyStr.length < 3600) {
+        if (bodyStr.length < 3800) {
           await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
             body: bodyStr
-          }, 3000);
+          }, 3500);
+        } else if (latestKey) {
+          await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: JSON.stringify({
+              type: 'snapshot_ptr',
+              key: latestKey,
+              sender: CLIENT_INSTANCE_ID,
+              ts: Date.now()
+            })
+          }, 3500);
         }
         setCloudBadgeState('cloud');
       } catch (e) {}
-
-      // 전체 스냅샷도 함께 갱신하여 나중에 접속하는 기기도 100% 복원되도록 보장
-      await uploadFullSnapshotToCloud();
     }
 
     async function handleRawEnvelopeMessage(rawMessageStr) {
@@ -2598,13 +2822,18 @@
         }
 
         applyIncomingCloudData(payload);
+
+        // 개별 이벤트에 함께 첨부된 전체 스냅샷 키가 있으면 추가로 병합 확인하여 신랑·신부 누락 원천 차단
+        if (payload.key && payload.sender !== CLIENT_INSTANCE_ID) {
+          await fetchAndApplySnapshotKey(payload.key);
+        }
       } catch (e) {}
     }
 
     async function pullLatestFromAllClouds(force = false) {
       const now = Date.now();
       if (isSyncPulling) return;
-      if (!force && now - lastPollTimestamp < 6000) return;
+      if (!force && now - lastPollTimestamp < 5000) return;
 
       isSyncPulling = true;
       lastPollTimestamp = now;
@@ -2612,39 +2841,61 @@
       try {
         // 1. 기존에 알고 있는 스냅샷 키가 있으면 우선 조회
         if (globalSyncBlobId) {
-          await fetchAndApplySnapshotKey(globalSyncBlobId);
+          await fetchAndApplySnapshotKey(globalSyncBlobId, force);
         }
 
-        // 2. 최근 24시간 내 모든 클라우드 이벤트 히스토리 조회 (유효한 since=24h 파라미터 사용, 3.5초 타임아웃 적용)
-        const streamRes = await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`, {}, 3500);
+        // 2. 최근 클라우드 이벤트 히스토리 조회 후 모든 발신 기기(신랑 접수대, 신부 접수대 등)별 최신 스냅샷을 빠짐없이 병합
+        const streamRes = await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`, {}, 4500);
         if (streamRes.ok) {
           const text = await streamRes.text();
           const lines = text.trim().split('\n').filter(Boolean);
-          let latestSnapshotKey = '';
+          const latestKeyBySender = new Map();
+          const recentSnapshotKeys = [];
 
           for (let i = 0; i < lines.length; i++) {
             try {
               const envelope = JSON.parse(lines[i]);
               if (envelope && envelope.event === 'message' && envelope.message) {
                 const parsed = JSON.parse(envelope.message);
-                if (parsed && parsed.type === 'snapshot_ptr' && parsed.key) {
-                  latestSnapshotKey = parsed.key;
-                } else if (parsed && parsed.type !== 'sync_req') {
+                if (!parsed || typeof parsed !== 'object') continue;
+
+                if (parsed.key && typeof parsed.key === 'string') {
+                  const senderKey = parsed.sender || `anon_${i}`;
+                  latestKeyBySender.set(senderKey, parsed.key);
+                  if (!recentSnapshotKeys.includes(parsed.key)) {
+                    recentSnapshotKeys.push(parsed.key);
+                  }
+                }
+                if (parsed.type && parsed.type !== 'snapshot_ptr' && parsed.type !== 'sync_req') {
                   applyIncomingCloudData(parsed);
                 }
               }
             } catch (e) {}
           }
 
-          if (latestSnapshotKey) {
-            await fetchAndApplySnapshotKey(latestSnapshotKey);
+          // 각 기기(신랑측 기기, 신부측 기기 등)가 마지막으로 올린 스냅샷과 최근 스냅샷을 모두 순회 병합
+          const keysToMerge = new Set([
+            ...Array.from(latestKeyBySender.values()),
+            ...recentSnapshotKeys.slice(-5)
+          ]);
+
+          for (const k of keysToMerge) {
+            await fetchAndApplySnapshotKey(k, force);
           }
+
           setCloudBadgeState('cloud');
         }
       } catch (e) {
       } finally {
         isSyncPulling = false;
       }
+    }
+
+    async function forceManualCloudSync() {
+      showToast('PC·모바일 실시간 장부 데이터를 동기화하고 있습니다...', 'info');
+      await pullLatestFromAllClouds(true);
+      await broadcastLocalStateToPeers();
+      showToast('신랑측·신부측 최신 장부 동기화가 완료되었습니다!', 'success');
     }
 
     function connectRealtimeSseStream() {
@@ -2996,6 +3247,12 @@
         sessionStorage.removeItem('merrydam_admin_desk_side');
         document.getElementById('adminCenterModal')?.classList.add('hidden');
 
+        // 통합관리(!matchedWedding.isSeparateMode) 예식인 경우 무조건 'couple'(전체 통합 열람) 권한과 전체 필터('all')로 설정
+        if (!matchedWedding.isSeparateMode) {
+          matchedRole = 'couple';
+          currentFilter = 'all';
+        }
+
         currentUserRole = matchedRole;
         sessionStorage.setItem('merrydam_user_role', matchedRole);
 
@@ -3137,14 +3394,13 @@
 
       if (adminDeskSide === 'groom') {
         selectSide('groom');
-        setListFilter('groom');
       } else if (adminDeskSide === 'bride') {
         selectSide('bride');
-        setListFilter('bride');
       } else {
         selectSide('groom');
-        setListFilter('all');
       }
+      // 관리자 접수 페이지 구분을 바꾸더라도 접수 내역 탭에서는 신랑·신부 전체 내역을 모두 볼 수 있도록 전체('all') 필터 유지
+      setListFilter('all');
 
       renderSummaryAndRecent();
       renderListTable();
@@ -3197,7 +3453,7 @@
           lockNotice.className = 'mb-4 p-3.5 rounded-2xl border-2 border-blue-300 bg-blue-50/90 text-blue-900 flex items-center justify-between';
         }
         if (lockIcon) lockIcon.className = 'fa-solid fa-user-tie text-blue-700';
-        if (lockText) lockText.innerText = `[신랑 ${groomName}측 전용 등록 페이지] — 신부측 버튼이 잠금 처리되어 실수 없이 신랑측으로만 안전하게 등록됩니다.`;
+        if (lockText) lockText.innerText = `[신랑 ${groomName}측 전용 입력 모드] — 입력 실수 방지를 위해 '신랑측' 버튼만 고정된 상태입니다. (신랑·신부님 열람 시에는 양측 내역이 모두 정상 표시됩니다)`;
         if (formCard) {
           formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border-2 border-blue-400 shadow-card transition-all ring-4 ring-blue-50';
         }
@@ -3216,7 +3472,7 @@
           lockNotice.className = 'mb-4 p-3.5 rounded-2xl border-2 border-rose-300 bg-rose-50/90 text-rose-900 flex items-center justify-between';
         }
         if (lockIcon) lockIcon.className = 'fa-solid fa-gem text-rose-600';
-        if (lockText) lockText.innerText = `[신부 ${brideName}측 전용 등록 페이지] — 신랑측 버튼이 잠금 처리되어 실수 없이 신부측으로만 안전하게 등록됩니다.`;
+        if (lockText) lockText.innerText = `[신부 ${brideName}측 전용 입력 모드] — 입력 실수 방지를 위해 '신부측' 버튼만 고정된 상태입니다. (신랑·신부님 열람 시에는 양측 내역이 모두 정상 표시됩니다)`;
         if (formCard) {
           formCard.className = 'lg:col-span-8 bg-white rounded-3xl p-5 sm:p-7 border-2 border-rose-400 shadow-card transition-all ring-4 ring-rose-50';
         }
@@ -3281,12 +3537,18 @@
       applyRolePermissionsUI();
       applyAdminDeskModeUI();
 
-      if (currentUserRole === 'couple_groom' || (currentUserRole === 'admin' && adminDeskSide === 'groom')) {
+      if (currentUserRole === 'couple_groom' && wedding.isSeparateMode) {
         selectSide('groom');
         currentFilter = 'groom';
-      } else if (currentUserRole === 'couple_bride' || (currentUserRole === 'admin' && adminDeskSide === 'bride')) {
+      } else if (currentUserRole === 'couple_bride' && wedding.isSeparateMode) {
         selectSide('bride');
         currentFilter = 'bride';
+      } else if (currentUserRole === 'admin' && adminDeskSide === 'groom') {
+        selectSide('groom');
+        currentFilter = 'all';
+      } else if (currentUserRole === 'admin' && adminDeskSide === 'bride') {
+        selectSide('bride');
+        currentFilter = 'all';
       } else {
         selectSide('groom');
         currentFilter = 'all';
@@ -3599,7 +3861,13 @@
             sessionStorage.removeItem('merrydam_user_role');
             return;
           }
-          currentUserRole = savedRole || (isMasterAdminSession ? 'admin' : 'couple');
+          // 통합 관리 예식인데 예전 세션에 couple_groom / couple_bride가 남아있다면 즉시 통합('couple')으로 보정
+          if (!found.isSeparateMode && (savedRole === 'couple_groom' || savedRole === 'couple_bride')) {
+            currentUserRole = 'couple';
+            sessionStorage.setItem('merrydam_user_role', 'couple');
+          } else {
+            currentUserRole = savedRole || (isMasterAdminSession ? 'admin' : 'couple');
+          }
           if (currentUserRole === 'admin') {
             isMasterAdminSession = true;
             localStorage.setItem(LOCAL_MASTER_ADMIN_KEY, 'true');
@@ -3861,6 +4129,9 @@
               </button>
               <button type="button" onclick="event.stopPropagation(); enterWeddingFromAdmin('${w.id}', 'all')" class="px-2 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold rounded-lg text-[11px] transition-colors" title="신랑·신부 통합 접수대로 입장">
                 통합 입장
+              </button>
+              <button type="button" onclick="event.stopPropagation(); openEditWeddingModal('${w.id}')" class="px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-lg text-[11px] transition-colors border border-amber-300" title="예식 정보 수정">
+                수정
               </button>
               <button type="button" onclick="event.stopPropagation(); confirmDeleteWedding('${w.id}')" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-[11px] transition-colors" title="예식 삭제">
                 삭제
@@ -4159,6 +4430,196 @@
     }
 
     // ==============================================================
+    // 기존 예식 정보 수정 모달 핸들러 (관리자 전용 - 장부 데이터 100% 보존)
+    // ==============================================================
+    function selectEditQuickWeddingTime(timeStr) {
+      const inputEl = document.getElementById('editWeddingTime');
+      const previewEl = document.getElementById('editWeddingTimePreview');
+      if (inputEl) inputEl.value = timeStr;
+      if (previewEl) previewEl.innerText = `선택된 시간: ${timeStr}`;
+
+      document.querySelectorAll('#editTimeChipsContainer .edit-time-chip').forEach(btn => {
+        if (btn.innerText.trim() === timeStr) {
+          btn.className = 'edit-time-chip py-1.5 text-xs font-bold rounded-lg border border-amber-600 bg-amber-500 text-white';
+        } else {
+          btn.className = 'edit-time-chip py-1.5 text-xs font-semibold rounded-lg border border-stone-200 bg-stone-50 text-stone-700 hover:bg-amber-50';
+        }
+      });
+    }
+
+    function toggleEditWeddingSeparateOption(isSeparate) {
+      const checkEl = document.getElementById('editWeddingSeparateCheck');
+      if (checkEl) checkEl.checked = !!isSeparate;
+
+      const editId = document.getElementById('editWeddingId')?.value || null;
+      const singleSec = document.getElementById('editSinglePasswordSection');
+      const separateSec = document.getElementById('editSeparatePasswordSection');
+      const singleInput = document.getElementById('editWeddingPassword');
+      const groomInput = document.getElementById('editWeddingGroomPassword');
+      const brideInput = document.getElementById('editWeddingBridePassword');
+
+      if (isSeparate) {
+        singleSec?.classList.add('hidden');
+        separateSec?.classList.remove('hidden');
+        if (singleInput) singleInput.required = false;
+        if (groomInput) {
+          groomInput.required = true;
+          if (!groomInput.value.trim()) groomInput.value = generateUniqueSixDigitCode('');
+        }
+        if (brideInput) {
+          brideInput.required = true;
+          if (!brideInput.value.trim() || brideInput.value.trim() === groomInput?.value.trim()) {
+            brideInput.value = generateUniqueSixDigitCode(groomInput?.value.trim() || '');
+          }
+        }
+      } else {
+        singleSec?.classList.remove('hidden');
+        separateSec?.classList.add('hidden');
+        if (singleInput) {
+          singleInput.required = true;
+          if (!singleInput.value.trim()) {
+            const existingW = weddings.find(w => w.id === editId);
+            singleInput.value = existingW?.password || existingW?.groomPassword || generateUniqueSixDigitCode();
+          }
+        }
+        if (groomInput) groomInput.required = false;
+        if (brideInput) brideInput.required = false;
+      }
+    }
+
+    function generateRandomPasscodeForEditWedding() {
+      const pwdInput = document.getElementById('editWeddingPassword');
+      if (pwdInput) pwdInput.value = generateUniqueSixDigitCode();
+    }
+
+    function generateRandomEditSeparatePasscode(side) {
+      const groomInput = document.getElementById('editWeddingGroomPassword');
+      const brideInput = document.getElementById('editWeddingBridePassword');
+      if (side === 'groom' && groomInput) {
+        groomInput.value = generateUniqueSixDigitCode(brideInput?.value.trim() || '');
+      } else if (side === 'bride' && brideInput) {
+        brideInput.value = generateUniqueSixDigitCode(groomInput?.value.trim() || '');
+      }
+    }
+
+    function openEditWeddingModal(wId) {
+      const targetId = wId || activeWedding?.id || adminSelectedWeddingId;
+      const target = weddings.find(w => w.id === targetId);
+      if (!target) {
+        showToast('수정할 예식을 찾을 수 없습니다.', 'warning');
+        return;
+      }
+
+      if (!isMasterAdminSession || currentUserRole !== 'admin') {
+        requestPasswordAndExecute('예식 정보 수정 권한 확인', () => {
+          openEditWeddingModal(targetId);
+        });
+        return;
+      }
+
+      document.getElementById('editWeddingId').value = target.id;
+      document.getElementById('editWeddingDate').value = target.date || '';
+      document.getElementById('editWeddingTime').value = target.time || '';
+      selectEditQuickWeddingTime(target.time || '15:00 (3시)');
+      document.getElementById('editWeddingGroom').value = target.groomName || '';
+      document.getElementById('editWeddingBride').value = target.brideName || '';
+      document.getElementById('editWeddingVenue').value = target.venue || '';
+
+      const singleInput = document.getElementById('editWeddingPassword');
+      const groomInput = document.getElementById('editWeddingGroomPassword');
+      const brideInput = document.getElementById('editWeddingBridePassword');
+      if (singleInput) singleInput.value = target.password || '';
+      if (groomInput) groomInput.value = target.groomPassword || '';
+      if (brideInput) brideInput.value = target.bridePassword || '';
+
+      toggleEditWeddingSeparateOption(!!target.isSeparateMode);
+      document.getElementById('editWeddingModal')?.classList.remove('hidden');
+    }
+
+    function closeEditWeddingModal() {
+      document.getElementById('editWeddingModal')?.classList.add('hidden');
+    }
+
+    async function handleEditWeddingSubmit(e) {
+      e.preventDefault();
+      if (!isMasterAdminSession || currentUserRole !== 'admin') return;
+
+      const wId = document.getElementById('editWeddingId')?.value;
+      const idx = weddings.findIndex(w => w.id === wId);
+      if (idx === -1) return;
+
+      const date = document.getElementById('editWeddingDate').value;
+      const time = document.getElementById('editWeddingTime').value.trim();
+      const groomName = document.getElementById('editWeddingGroom').value.trim();
+      const brideName = document.getElementById('editWeddingBride').value.trim();
+      const venue = document.getElementById('editWeddingVenue').value.trim();
+      const isSeparateMode = !!document.getElementById('editWeddingSeparateCheck')?.checked;
+
+      const password = document.getElementById('editWeddingPassword')?.value.trim() || '';
+      const groomPassword = document.getElementById('editWeddingGroomPassword')?.value.trim() || '';
+      const bridePassword = document.getElementById('editWeddingBridePassword')?.value.trim() || '';
+
+      if (!date || !time || !groomName || !brideName) {
+        showToast('필수 예식 정보를 모두 입력해 주세요.', 'warning');
+        return;
+      }
+
+      if (isSeparateMode) {
+        if (!groomPassword || !bridePassword) {
+          showToast('신랑 전용 비밀번호와 신부 전용 비밀번호를 모두 입력해 주세요.', 'warning');
+          return;
+        }
+        if (groomPassword === bridePassword) {
+          showToast('신랑 비밀번호와 신부 비밀번호를 서로 다르게 설정해 주세요.', 'warning');
+          return;
+        }
+        if (isPasswordAlreadyUsed(groomPassword, wId) || isPasswordAlreadyUsed(bridePassword, wId)) {
+          showToast('이미 다른 예식에서 사용 중인 비밀번호입니다. 다른 번호를 지정해 주세요.', 'warning');
+          return;
+        }
+      } else {
+        if (!password) {
+          showToast('예식 접속 비밀번호를 입력해 주세요.', 'warning');
+          return;
+        }
+        if (isPasswordAlreadyUsed(password, wId)) {
+          showToast('이미 다른 예식에서 사용 중인 비밀번호입니다. 다른 번호를 지정해 주세요.', 'warning');
+          return;
+        }
+      }
+
+      const updatedWedding = {
+        ...weddings[idx],
+        date,
+        time,
+        groomName,
+        brideName,
+        venue,
+        isSeparateMode,
+        password: isSeparateMode ? '' : password,
+        groomPassword: isSeparateMode ? groomPassword : '',
+        bridePassword: isSeparateMode ? bridePassword : '',
+        updatedAt: Date.now()
+      };
+
+      weddings[idx] = updatedWedding;
+      sortWeddingsByRecent();
+      saveLocalBackup();
+      adminSelectedWeddingId = wId;
+      renderAdminWeddingsList();
+      updateAdminSharePreview(wId);
+      closeEditWeddingModal();
+
+      if (activeWedding && activeWedding.id === wId) {
+        activeWedding = updatedWedding;
+        enterWedding(updatedWedding);
+      }
+
+      showToast(`[${groomName} ♥ ${brideName}] 예식 정보가 수정되었습니다. (기존 접수 내역 유지)`, 'success');
+      await writeCloudDoc('weddings', wId, updatedWedding);
+    }
+
+    // ==============================================================
     // 현장 축의금 접수 입력 폼 핸들러 (구분별 봉투번호, 금액, 성인/어린이 식권)
     // ==============================================================
     function selectSide(side) {
@@ -4231,6 +4692,14 @@
     function highlightAmountButtons(amount) {
       document.querySelectorAll('.amount-btn').forEach(btn => {
         const btnAmt = Number(btn.getAttribute('data-amount'));
+        if (btn.id === 'zeroAmountBtn') {
+          if (btnAmt === amount) {
+            btn.className = 'amount-btn btn-tactile text-xs sm:text-sm font-extrabold px-3 py-1.5 rounded-lg border-2 border-[#C5A059] bg-amber-50 text-amber-900 transition-all flex items-center space-x-1.5 whitespace-nowrap flex-shrink-0 ring-2 ring-amber-200/70 shadow-xs';
+          } else {
+            btn.className = 'amount-btn btn-tactile text-xs sm:text-sm font-bold px-3 py-1.5 rounded-lg border-2 border-stone-300 bg-white hover:bg-amber-50 text-stone-700 transition-all flex items-center space-x-1.5 whitespace-nowrap flex-shrink-0';
+          }
+          return;
+        }
         if (btnAmt === amount) {
           btn.className = 'amount-btn btn-tactile py-3 px-2 rounded-xl border-2 border-[#C5A059] bg-amber-50 font-extrabold text-amber-900 text-sm sm:text-base transition-all ring-2 ring-amber-200/70 shadow-xs';
         } else {
@@ -4244,7 +4713,7 @@
       const finalInput = document.getElementById('finalAmount');
       const customInput = document.getElementById('customAmountInput');
       if (finalInput) finalInput.value = String(amt);
-      if (customInput) customInput.value = amt > 0 ? amt.toLocaleString() : '';
+      if (customInput) customInput.value = amt.toLocaleString();
 
       highlightAmountButtons(amt);
       updateAmountLabel(amt);
@@ -4257,15 +4726,15 @@
       box.classList.toggle('hidden');
       if (!box.classList.contains('hidden') && input) {
         const cur = Number(document.getElementById('finalAmount')?.value || 0);
-        input.value = cur > 0 ? cur.toLocaleString() : '';
+        input.value = cur.toLocaleString();
         input.focus();
       }
     }
 
     function handleCustomAmountInput(inputEl) {
       const digitsOnly = String(inputEl.value || '').replace(/[^0-9]/g, '');
-      const num = digitsOnly ? parseInt(digitsOnly, 10) : 0;
-      inputEl.value = num > 0 ? num.toLocaleString() : '';
+      const num = digitsOnly !== '' ? parseInt(digitsOnly, 10) : 0;
+      inputEl.value = digitsOnly !== '' ? num.toLocaleString() : '';
       const finalInput = document.getElementById('finalAmount');
       if (finalInput) finalInput.value = String(num);
       highlightAmountButtons(num);
@@ -4344,7 +4813,8 @@
       const side = document.getElementById('selectedSide')?.value || 'groom';
       const guestName = document.getElementById('guestName')?.value.trim() || '';
       const memo = document.getElementById('memo')?.value.trim() || '';
-      const amount = Math.round(Number(document.getElementById('finalAmount')?.value || 0));
+      const rawFinalAmount = document.getElementById('finalAmount')?.value;
+      const amount = Math.round(Number(rawFinalAmount ?? 0));
       const adultTickets = Math.max(0, parseInt(document.getElementById('adultTicketsInput')?.value || '0', 10) || 0);
       const childTickets = Math.max(0, parseInt(document.getElementById('childTicketsInput')?.value || '0', 10) || 0);
       const tickets = adultTickets + childTickets;
@@ -4355,8 +4825,8 @@
         return;
       }
 
-      if (amount <= 0) {
-        showToast('축의 금액을 선택하거나 입력해 주세요.', 'warning');
+      if (isNaN(amount) || amount < 0) {
+        showToast('축의 금액을 0원 이상으로 선택하거나 입력해 주세요.', 'warning');
         return;
       }
 
@@ -5854,6 +6324,15 @@
     window.updateGroomMaskPreview = updateGroomMaskPreview;
     window.updateBrideMaskPreview = updateBrideMaskPreview;
     window.updateVenueMaskPreview = updateVenueMaskPreview;
+
+    window.openEditWeddingModal = openEditWeddingModal;
+    window.closeEditWeddingModal = closeEditWeddingModal;
+    window.selectEditQuickWeddingTime = selectEditQuickWeddingTime;
+    window.toggleEditWeddingSeparateOption = toggleEditWeddingSeparateOption;
+    window.generateRandomPasscodeForEditWedding = generateRandomPasscodeForEditWedding;
+    window.generateRandomEditSeparatePasscode = generateRandomEditSeparatePasscode;
+    window.handleEditWeddingSubmit = handleEditWeddingSubmit;
+    window.forceManualCloudSync = forceManualCloudSync;
 
     window.openCoupleWelcomeModal = openCoupleWelcomeModal;
     window.closeCoupleWelcomeModal = closeCoupleWelcomeModal;
