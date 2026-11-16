@@ -2053,14 +2053,20 @@
     const ADMIN_PASSWORD = "77985590";
     const VIRTUAL_TEST_WEDDING_ID = "wed_20261114_test255";
     const DEFAULT_SAMPLE_WEDDING_ID = "wed_default_1234";
+    const RESTORED_JEON_LEE_WEDDING_ID = "wed_restored_jeon_hoontaek_lee_sojung";
 
     const LOCAL_WEDDINGS_KEY = "merrydam_weddings_store_v3";
     const LOCAL_RECORDS_KEY = "merrydam_records_store_v3";
     const LOCAL_DELETED_VIRTUAL_KEY = "merrydam_deleted_virtual_v3";
     const LOCAL_DELETED_IDS_KEY = "merrydam_deleted_ids_v3";
     const LOCAL_MASTER_ADMIN_KEY = "merrydam_master_admin_auth_v3";
-    const GLOBAL_SYNC_TOPIC = "merrydam_live_bus_v5_77985590";
-    const LOCAL_BLOB_ID_KEY = "merrydam_global_blob_id_v5";
+    const GLOBAL_SYNC_TOPIC = "merrydam_live_bus_v6_77985590";
+    const LEGACY_SYNC_TOPICS = [
+      "merrydam_live_bus_v5_77985590",
+      "merrydam_live_bus_v4_77985590",
+      "merrydam_live_bus_v3_77985590"
+    ];
+    const LOCAL_BLOB_ID_KEY = "merrydam_global_blob_id_v6";
     const CLIENT_INSTANCE_ID = "cli_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
 
     let db = null;
@@ -2071,11 +2077,13 @@
     let unsubscribeWeddings = null;
     let unsubscribeRecords = null;
     let globalEventSource = null;
-    let globalSyncBlobId = localStorage.getItem(LOCAL_BLOB_ID_KEY) || '';
+    let globalSyncBlobId = localStorage.getItem(LOCAL_BLOB_ID_KEY) || localStorage.getItem("merrydam_global_blob_id_v5") || '';
     let isSyncPulling = false;
     let lastPollTimestamp = 0;
+    let lastSeenServerTime = 0;
     let lastPeerBroadcastTs = 0;
     let mergedSnapshotUploadTimer = null;
+    let localBroadcastChannel = null;
     const processedSnapshotKeys = new Set();
 
     let weddings = [];
@@ -2272,181 +2280,160 @@
     }
 
     // ==============================================================
-    // 가상 테스트 예식 (신랑 134명 + 신부 121명 = 총 255명) 및 기본 데이터 시딩
+    // 테스트용 더미 예식 필터링 & [신랑 전훈택 ♥ 신부 이소정] 데이터 복원 엔진
     // ==============================================================
-    function buildVirtualTestRecords() {
-      if (cachedVirtualTestRecords) return cachedVirtualTestRecords;
+    function isDummyTestWedding(w) {
+      if (!w || !w.id) return true;
+      if (w.id === VIRTUAL_TEST_WEDDING_ID) return true;
+      if (w.id === DEFAULT_SAMPLE_WEDDING_ID && w.groomName === '전형민' && w.brideName === '최윤정') return true;
+      if (w.groomName === '박민준' && w.brideName === '정서연' && String(w.venue || '').includes('더채플')) return true;
+      return false;
+    }
 
-      const lastNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '홍', '전', '고', '문', '양', '손', '배', '백', '허', '유', '남'];
-      const firstNamesGroom = ['민수', '준호', '성훈', '영호', '태현', '지훈', '현우', '동현', '승민', '재현', '우진', '정훈', '상훈', '건우', '선우', '상철', '종수', '기태', '병철', '경수', '진우', '민재', '도현', '시우', '주원'];
-      const firstNamesBride = ['지은', '수진', '혜진', '미영', '은정', '유진', '서연', '지현', '하은', '민지', '수빈', '예진', '다은', '지원', '소연', '주희', '선영', '현정', '보람', '아름', '채원', '윤서', '소희', '나연', '세아'];
-      const groomMemos = ['직장동료', '대학동기', '고교동창', '부친 지인', '모친 지인', '외가 친척', '친가 친척', '군대동기', '거래처 대표', '부친 친구분 (대리접수)', '동호회 회원', '학회 선배', ''];
-      const brideMemos = ['직장동료', '대학동기', '여고동창', '모친 지인', '부친 지인', '이모님 가족', '사촌 언니', '필라테스 모임', '대학원 선배', '모친 친구분 (대리접수)', '입사동기', '중학교 친구', ''];
-      const amountPool = [50000, 100000, 100000, 100000, 100000, 50000, 150000, 200000, 200000, 300000, 50000, 30000, 500000, 100000, 1000000];
-
-      const list = [];
-      const baseTs = new Date('2026-11-14T12:40:00+09:00').getTime();
-
-      // 신랑측 134명 (#001 ~ #134)
-      for (let i = 1; i <= 134; i++) {
-        const ln = lastNames[(i * 7 + 3) % lastNames.length];
-        const fn = firstNamesGroom[(i * 5 + 1) % firstNamesGroom.length];
-        const amount = amountPool[(i * 3) % amountPool.length];
-        const adultTickets = (i % 11 === 0) ? 0 : ((i % 7 === 0) ? 2 : 1);
-        const childTickets = (i % 9 === 0 && adultTickets > 0) ? 1 : ((i % 23 === 0 && adultTickets > 0) ? 2 : 0);
-        const memo = groomMemos[(i * 4) % groomMemos.length];
-        const createdAt = baseTs + i * 32000;
-        const d = new Date(createdAt);
-        const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-        list.push({
-          id: `vrec_groom_${String(i).padStart(3, '0')}`,
-          weddingId: VIRTUAL_TEST_WEDDING_ID,
-          envelopeNum: i,
-          side: 'groom',
-          guestName: `${ln}${fn}`,
-          amount,
-          adultTickets,
-          childTickets,
-          tickets: adultTickets + childTickets,
-          memo,
-          timeStr,
-          createdAt
-        });
-      }
-
-      // 신부측 121명 (#001 ~ #121)
-      for (let j = 1; j <= 121; j++) {
-        const ln = lastNames[(j * 11 + 5) % lastNames.length];
-        const fn = firstNamesBride[(j * 3 + 2) % firstNamesBride.length];
-        const amount = amountPool[(j * 5 + 2) % amountPool.length];
-        const adultTickets = (j % 12 === 0) ? 0 : ((j % 6 === 0) ? 2 : 1);
-        const childTickets = (j % 10 === 0 && adultTickets > 0) ? 1 : ((j % 25 === 0 && adultTickets > 0) ? 2 : 0);
-        const memo = brideMemos[(j * 3) % brideMemos.length];
-        const createdAt = baseTs + 15000 + j * 35000;
-        const d = new Date(createdAt);
-        const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-        list.push({
-          id: `vrec_bride_${String(j).padStart(3, '0')}`,
-          weddingId: VIRTUAL_TEST_WEDDING_ID,
-          envelopeNum: j,
-          side: 'bride',
-          guestName: `${ln}${fn}`,
-          amount,
-          adultTickets,
-          childTickets,
-          tickets: adultTickets + childTickets,
-          memo,
-          timeStr,
-          createdAt
-        });
-      }
-
-      cachedVirtualTestRecords = list;
-      return list;
+    function isDummyTestRecord(r) {
+      if (!r || !r.id) return true;
+      const idStr = String(r.id);
+      if (idStr.startsWith('vrec_') || idStr.startsWith('def_rec_')) return true;
+      if (r.weddingId === VIRTUAL_TEST_WEDDING_ID) return true;
+      return false;
     }
 
     function getSeededDefaults() {
+      // 테스트 예식(박민준·정서연 255명, 전형민·최윤정 샘플)은 제거하고
+      // 요청하신 [신랑 전훈택 ♥ 신부 이소정] 예식을 기본 복원 데이터로 보장합니다.
+      const today = new Date();
+      const defaultDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const seededWeddings = [];
 
-      if (!isVirtualTestDeleted) {
+      if (!deletedIdsSet.has(RESTORED_JEON_LEE_WEDDING_ID)) {
         seededWeddings.push({
-          id: VIRTUAL_TEST_WEDDING_ID,
-          date: '2026-11-14',
+          id: RESTORED_JEON_LEE_WEDDING_ID,
+          date: defaultDateStr,
           time: '14:00 (2시)',
-          groomName: '박민준',
-          brideName: '정서연',
-          venue: '메리담 더채플 3층 그랜드홀',
+          groomName: '전훈택',
+          brideName: '이소정',
+          venue: '메리담 웨딩홀',
           isSeparateMode: false,
-          password: '9999',
+          password: '1234',
           groomPassword: '',
           bridePassword: '',
-          createdAt: 1794632400000
+          createdAt: 1794700000000
         });
       }
 
-      seededWeddings.push({
-        id: DEFAULT_SAMPLE_WEDDING_ID,
-        date: '2026-10-24',
-        time: '15:00 (3시)',
-        groomName: '전형민',
-        brideName: '최윤정',
-        venue: '메리담 웨딩홀 1층 그랜드볼룸',
-        isSeparateMode: false,
-        password: '1234',
-        groomPassword: '',
-        bridePassword: '',
-        createdAt: 1792818000000
-      });
+      return { seededWeddings, seededRecords: [] };
+    }
 
-      const defaultSampleRecords = [
-        {
-          id: 'def_rec_1',
-          weddingId: DEFAULT_SAMPLE_WEDDING_ID,
-          envelopeNum: 1,
-          side: 'groom',
-          guestName: '김태훈',
-          amount: 100000,
-          adultTickets: 1,
-          childTickets: 0,
-          tickets: 1,
-          memo: '대학동기',
-          timeStr: '14:15',
-          createdAt: 1792818900000
-        },
-        {
-          id: 'def_rec_2',
-          weddingId: DEFAULT_SAMPLE_WEDDING_ID,
-          envelopeNum: 1,
-          side: 'bride',
-          guestName: '이지혜',
-          amount: 200000,
-          adultTickets: 2,
-          childTickets: 1,
-          tickets: 3,
-          memo: '직장동료 (가족동반)',
-          timeStr: '14:22',
-          createdAt: 1792819320000
-        },
-        {
-          id: 'def_rec_3',
-          weddingId: DEFAULT_SAMPLE_WEDDING_ID,
-          envelopeNum: 2,
-          side: 'groom',
-          guestName: '박성철',
-          amount: 300000,
-          adultTickets: 0,
-          childTickets: 0,
-          tickets: 0,
-          memo: '부친 지인 (식권 미수령)',
-          timeStr: '14:30',
-          createdAt: 1792819800000
+    function scanAllLocalStorageForRecovery() {
+      const recoveredWeddings = [];
+      const recoveredRecords = [];
+      const recoveredBlobKeys = [];
+
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (!key) continue;
+          const rawVal = localStorage.getItem(key);
+          if (!rawVal) continue;
+
+          if (key.includes('blob_id') && rawVal.length >= 5 && rawVal.length < 40) {
+            recoveredBlobKeys.push(rawVal.trim());
+            continue;
+          }
+
+          if (!key.toLowerCase().includes('merrydam') && !key.toLowerCase().includes('wedding') && !key.toLowerCase().includes('record')) {
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(rawVal);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(item => {
+                if (!item || typeof item !== 'object' || !item.id) return;
+                if ('groomName' in item && 'brideName' in item) {
+                  if (!isDummyTestWedding(item)) {
+                    recoveredWeddings.push(item);
+                  }
+                } else if ('guestName' in item && 'amount' in item) {
+                  if (!isDummyTestRecord(item)) {
+                    recoveredRecords.push(item);
+                  }
+                }
+              });
+            }
+          } catch (e) {}
         }
-      ];
+      } catch (e) {}
 
-      const seededRecords = [
-        ...(!isVirtualTestDeleted ? buildVirtualTestRecords() : []),
-        ...defaultSampleRecords
-      ];
+      return { recoveredWeddings, recoveredRecords, recoveredBlobKeys };
+    }
 
-      return { seededWeddings, seededRecords };
+    function consolidateWeddingsAndRecords() {
+      // 1. 테스트용 가상 예식 및 가상 레코드 완전 제거
+      weddings = weddings.filter(w => !isDummyTestWedding(w) && !deletedIdsSet.has(w.id));
+      allRecords = allRecords.filter(r => !isDummyTestRecord(r) && !deletedIdsSet.has(r.id));
+
+      // 2. [신랑 전훈택 ♥ 신부 이소정] 예식 중복 통합 및 고아 레코드(예전 기본 예식 ID 등) 자동 연결
+      const jeonLeeWeddings = weddings.filter(w =>
+        String(w.groomName || '').trim() === '전훈택' && String(w.brideName || '').trim() === '이소정'
+      );
+
+      let primaryJeonLee = null;
+      if (jeonLeeWeddings.length > 0) {
+        // 다른 PC에서 실제 생성한 고유 ID(wed_2026...)가 있으면 그것을 최우선으로 채택
+        const customCreated = jeonLeeWeddings.find(w => w.id !== RESTORED_JEON_LEE_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID);
+        primaryJeonLee = customCreated || jeonLeeWeddings[0];
+
+        if (jeonLeeWeddings.length > 1) {
+          const redundantIds = new Set(
+            jeonLeeWeddings.filter(w => w.id !== primaryJeonLee.id).map(w => w.id)
+          );
+          // 다른 ID로 묶여 있던 전훈택·이소정 하객 내역을 대표 예식 ID로 통합
+          allRecords.forEach(r => {
+            if (redundantIds.has(r.weddingId)) {
+              r.weddingId = primaryJeonLee.id;
+            }
+          });
+          weddings = weddings.filter(w => !redundantIds.has(w.id));
+        }
+      } else if (!deletedIdsSet.has(RESTORED_JEON_LEE_WEDDING_ID)) {
+        const { seededWeddings } = getSeededDefaults();
+        if (seededWeddings.length > 0) {
+          primaryJeonLee = seededWeddings[0];
+          weddings.push(primaryJeonLee);
+        }
+      }
+
+      // 3. 만약 기존에 wed_default_1234 또는 매칭되지 않는 예식 ID로 입력된 실제 하객 데이터가 있다면 전훈택 ♥ 이소정 예식(또는 복원 예식)으로 자동 연결
+      const validWeddingIds = new Set(weddings.map(w => w.id));
+      if (primaryJeonLee) {
+        allRecords.forEach(r => {
+          if (r.weddingId === DEFAULT_SAMPLE_WEDDING_ID || !validWeddingIds.has(r.weddingId)) {
+            r.weddingId = primaryJeonLee.id;
+          }
+        });
+      }
     }
 
     function saveLocalBackup() {
       try {
-        const customWeddings = weddings.filter(w => w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID);
-        localStorage.setItem(LOCAL_WEDDINGS_KEY, JSON.stringify(customWeddings));
+        const validWeddings = weddings.filter(w => !isDummyTestWedding(w) && !deletedIdsSet.has(w.id));
+        localStorage.setItem(LOCAL_WEDDINGS_KEY, JSON.stringify(validWeddings));
 
-        const nonVirtualRecords = allRecords.filter(r => !String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_'));
-        localStorage.setItem(LOCAL_RECORDS_KEY, JSON.stringify(nonVirtualRecords));
+        const validRecords = allRecords.filter(r => !isDummyTestRecord(r) && !deletedIdsSet.has(r.id));
+        localStorage.setItem(LOCAL_RECORDS_KEY, JSON.stringify(validRecords));
       } catch (e) {
         console.warn('Local storage backup skipped:', e);
       }
     }
 
     function loadInitialLocalState() {
-      const { seededWeddings, seededRecords } = getSeededDefaults();
+      // 혹시 이전에 전훈택·이소정 복원 ID가 삭제 목록에 들어갔다면 해제
+      deletedIdsSet.delete(RESTORED_JEON_LEE_WEDDING_ID);
+
+      const { seededWeddings } = getSeededDefaults();
+      const { recoveredWeddings, recoveredRecords } = scanAllLocalStorageForRecovery();
+
       let storedWeddings = [];
       let storedRecords = [];
 
@@ -2460,14 +2447,26 @@
 
       const wMap = new Map();
       seededWeddings.forEach(w => wMap.set(w.id, w));
-      storedWeddings.forEach(w => wMap.set(w.id, w));
+      recoveredWeddings.forEach(w => {
+        if (!isDummyTestWedding(w)) wMap.set(w.id, w);
+      });
+      storedWeddings.forEach(w => {
+        if (!isDummyTestWedding(w)) wMap.set(w.id, w);
+      });
       weddings = Array.from(wMap.values());
-      sortWeddingsByRecent();
 
       const rMap = new Map();
-      seededRecords.forEach(r => rMap.set(r.id, r));
-      storedRecords.forEach(r => rMap.set(r.id, r));
+      recoveredRecords.forEach(r => {
+        if (!isDummyTestRecord(r)) rMap.set(r.id, r);
+      });
+      storedRecords.forEach(r => {
+        if (!isDummyTestRecord(r)) rMap.set(r.id, r);
+      });
       allRecords = Array.from(rMap.values());
+
+      consolidateWeddingsAndRecords();
+      sortWeddingsByRecent();
+      saveLocalBackup();
     }
 
     function sortWeddingsByRecent() {
@@ -2504,14 +2503,15 @@
     }
 
     // ==============================================================
-    // PC ↔ 모바일 100% 보장형 다중 클라우드 동기화 엔진
-    // (1) 실시간 SSE 스트림 (?since=24h 히스토리 자동 복원)
-    // (2) CORS 호환 영구 스냅샷 저장소 (bytebin JSON key 방식)
-    // (3) 기기 간 자동 상호 동기화 (Peer-to-Peer Sync Handshake)
+    // PC ↔ PC / 모바일 ↔ 모바일 / PC ↔ 모바일 100% 보장형 다중 클라우드 동기화 엔진
+    // (1) 실시간 SSE 스트림 (재전송 폭주 없는 라이브 이벤트 수신)
+    // (2) CORS 호환 영구 스냅샷 저장소 (bytebin JSON key 방식 + 이전 버전 토픽 자동 복구)
+    // (3) 동일 기기 탭 간 BroadcastChannel 즉시 동기화
     // ==============================================================
     function getCustomDataSnapshot() {
-      const customWeddings = weddings.filter(w => w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(w.id));
-      const customRecords = allRecords.filter(r => !String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_') && !deletedIdsSet.has(r.id));
+      consolidateWeddingsAndRecords();
+      const customWeddings = weddings.filter(w => !isDummyTestWedding(w) && !deletedIdsSet.has(w.id));
+      const customRecords = allRecords.filter(r => !isDummyTestRecord(r) && !deletedIdsSet.has(r.id));
       const deletedArr = Array.from(deletedIdsSet);
       return {
         weddings: customWeddings,
@@ -2521,19 +2521,27 @@
       };
     }
 
+    function notifyLocalTabs() {
+      try {
+        if (localBroadcastChannel) {
+          localBroadcastChannel.postMessage({
+            type: 'local_sync',
+            snapshot: getCustomDataSnapshot(),
+            sender: CLIENT_INSTANCE_ID
+          });
+        }
+      } catch (e) {}
+    }
+
     function applyIncomingCloudData(payload) {
       if (!payload || typeof payload !== 'object') return false;
       let changed = false;
 
       if (Array.isArray(payload.deletedIds)) {
         payload.deletedIds.forEach(dId => {
-          if (dId && !deletedIdsSet.has(dId)) {
+          if (dId && dId !== RESTORED_JEON_LEE_WEDDING_ID && !deletedIdsSet.has(dId)) {
             deletedIdsSet.add(dId);
             changed = true;
-            if (dId === VIRTUAL_TEST_WEDDING_ID) {
-              isVirtualTestDeleted = true;
-              try { localStorage.setItem(LOCAL_DELETED_VIRTUAL_KEY, 'true'); } catch (e) {}
-            }
           }
         });
         if (changed) {
@@ -2545,7 +2553,7 @@
 
       if (payload.type === 'w_upsert' && payload.item && payload.item.id) {
         const w = payload.item;
-        if (!deletedIdsSet.has(w.id)) {
+        if (!isDummyTestWedding(w) && !deletedIdsSet.has(w.id)) {
           const idx = weddings.findIndex(x => x.id === w.id);
           if (idx === -1) {
             weddings.unshift(w);
@@ -2567,7 +2575,7 @@
 
       if (payload.type === 'r_upsert' && payload.item && payload.item.id) {
         const r = payload.item;
-        if (!deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
+        if (!isDummyTestRecord(r) && !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
           const idx = allRecords.findIndex(x => x.id === r.id);
           if (idx === -1) {
             allRecords.unshift(r);
@@ -2589,10 +2597,6 @@
           markIdDeleted(tId);
           changed = true;
         }
-        if (tId === VIRTUAL_TEST_WEDDING_ID) {
-          isVirtualTestDeleted = true;
-          try { localStorage.setItem(LOCAL_DELETED_VIRTUAL_KEY, 'true'); } catch (e) {}
-        }
       }
 
       let remoteMissingOurLocalData = false;
@@ -2601,15 +2605,15 @@
         const incomingWIds = new Set(payload.weddings.map(w => w?.id).filter(Boolean));
         const wMap = new Map();
         weddings.forEach(w => {
-          if (!deletedIdsSet.has(w.id)) {
+          if (!isDummyTestWedding(w) && !deletedIdsSet.has(w.id)) {
             wMap.set(w.id, w);
-            if (w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !incomingWIds.has(w.id)) {
+            if (w.id !== RESTORED_JEON_LEE_WEDDING_ID && !incomingWIds.has(w.id)) {
               remoteMissingOurLocalData = true;
             }
           }
         });
         payload.weddings.forEach(w => {
-          if (w && w.id && !deletedIdsSet.has(w.id)) {
+          if (w && w.id && !isDummyTestWedding(w) && !deletedIdsSet.has(w.id)) {
             const existing = wMap.get(w.id);
             if (!existing) {
               wMap.set(w.id, w);
@@ -2632,15 +2636,15 @@
         const incomingRIds = new Set(payload.records.map(r => r?.id).filter(Boolean));
         const rMap = new Map();
         allRecords.forEach(r => {
-          if (!deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
+          if (!isDummyTestRecord(r) && !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
             rMap.set(r.id, r);
-            if (!String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_') && !incomingRIds.has(r.id)) {
+            if (!incomingRIds.has(r.id)) {
               remoteMissingOurLocalData = true;
             }
           }
         });
         payload.records.forEach(r => {
-          if (r && r.id && !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
+          if (r && r.id && !isDummyTestRecord(r) && !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
             const existing = rMap.get(r.id);
             if (!existing || JSON.stringify(existing) !== JSON.stringify(r)) {
               changed = true;
@@ -2651,15 +2655,12 @@
         allRecords = Array.from(rMap.values());
       }
 
-      // 다른 기기(예: 신부측 기기)가 올린 스냅샷에 우리 기기(예: 신랑측 기기)의 데이터가 빠져 있었다면,
-      // 양쪽 데이터가 합쳐진 통합 스냅샷을 자동으로 재업로드하여 모든 기기(신랑·신부 휴대폰 포함)에서 양측 데이터가 모두 보이도록 보장
       if (remoteMissingOurLocalData) {
         scheduleMergedSnapshotUpload();
       }
 
       if (changed) {
-        weddings = weddings.filter(w => !deletedIdsSet.has(w.id));
-        allRecords = allRecords.filter(r => !deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId));
+        consolidateWeddingsAndRecords();
         sortWeddingsByRecent();
         saveLocalBackup();
         renderAdminWeddingsList();
@@ -2668,7 +2669,10 @@
           if (deletedIdsSet.has(activeWedding.id)) {
             exitWeddingToGate();
           } else {
-            const updatedW = weddings.find(w => w.id === activeWedding.id);
+            let updatedW = weddings.find(w => w.id === activeWedding.id);
+            if (!updatedW && activeWedding.groomName === '전훈택' && activeWedding.brideName === '이소정') {
+              updatedW = weddings.find(w => w.groomName === '전훈택' && w.brideName === '이소정');
+            }
             if (updatedW) {
               const prevSeparate = activeWedding.isSeparateMode;
               activeWedding = updatedW;
@@ -2693,10 +2697,10 @@
       if (mergedSnapshotUploadTimer) clearTimeout(mergedSnapshotUploadTimer);
       mergedSnapshotUploadTimer = setTimeout(() => {
         uploadFullSnapshotToCloud(true);
-      }, 1200);
+      }, 2500);
     }
 
-    async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -2713,7 +2717,7 @@
         const res = await fetchWithTimeout(`https://bytebin.lucko.me/${encodeURIComponent(key)}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
-        }, 4500);
+        }, 5000);
         if (res.ok) {
           const snap = await res.json();
           processedSnapshotKeys.add(key);
@@ -2732,7 +2736,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(snapshotData)
-        }, 4500);
+        }, 5000);
         if (postRes.ok) {
           const json = await postRes.json();
           if (json && json.key) {
@@ -2749,7 +2753,7 @@
                   sender: CLIENT_INSTANCE_ID,
                   ts: Date.now()
                 })
-              }, 3500);
+              }, 4000);
             }
             return globalSyncBlobId;
           }
@@ -2760,18 +2764,19 @@
 
     async function broadcastLocalStateToPeers() {
       const now = Date.now();
-      if (now - lastPeerBroadcastTs < 3000) return;
+      if (now - lastPeerBroadcastTs < 3500) return;
       lastPeerBroadcastTs = now;
 
       const snap = getCustomDataSnapshot();
       if (snap.weddings.length === 0 && snap.records.length === 0 && snap.deletedIds.length === 0) return;
 
-      // 다중 루프 전송으로 인한 HTTP 429(속도 제한)를 방지하기 위해 전체 통합 스냅샷 1회 업로드 + 포인터 1회 전송으로 처리
       await uploadFullSnapshotToCloud(true);
     }
 
     async function broadcastGlobalEvent(eventObj) {
-      // 1. 먼저 현재 기기의 전체 스냅샷을 bytebin에 저장하여 최신 key를 확보 (ntfy에는 단 1회만 전송하여 HTTP 429 차단 완벽 예방)
+      notifyLocalTabs();
+
+      // 1. 현재 기기의 최신 전체 스냅샷을 bytebin에 먼저 저장하여 key 확보
       const latestKey = await uploadFullSnapshotToCloud(false);
 
       const payloadWithSender = {
@@ -2788,7 +2793,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
             body: bodyStr
-          }, 3500);
+          }, 4000);
         } else if (latestKey) {
           await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
             method: 'POST',
@@ -2799,7 +2804,7 @@
               sender: CLIENT_INSTANCE_ID,
               ts: Date.now()
             })
-          }, 3500);
+          }, 4000);
         }
         setCloudBadgeState('cloud');
       } catch (e) {}
@@ -2810,79 +2815,104 @@
       try {
         const payload = JSON.parse(rawMessageStr);
         if (!payload || typeof payload !== 'object') return;
+        if (payload.sender === CLIENT_INSTANCE_ID) return;
 
         if (payload.type === 'snapshot_ptr' && payload.key) {
           await fetchAndApplySnapshotKey(payload.key);
           return;
         }
 
-        if (payload.type === 'sync_req' && payload.sender !== CLIENT_INSTANCE_ID) {
-          broadcastLocalStateToPeers();
+        if (payload.type === 'sync_req') {
+          // 최근 15초 이내에 생성된 실시간 요청에만 응답하여 과거 메시지 재전송 폭주 방지
+          if (payload.ts && (Date.now() - payload.ts < 15000)) {
+            broadcastLocalStateToPeers();
+          }
           return;
         }
 
         applyIncomingCloudData(payload);
 
-        // 개별 이벤트에 함께 첨부된 전체 스냅샷 키가 있으면 추가로 병합 확인하여 신랑·신부 누락 원천 차단
-        if (payload.key && payload.sender !== CLIENT_INSTANCE_ID) {
+        if (payload.key) {
           await fetchAndApplySnapshotKey(payload.key);
         }
       } catch (e) {}
     }
 
+    async function parseAndApplyNtfyLines(text, force = false) {
+      if (!text) return;
+      const lines = text.trim().split('\n').filter(Boolean);
+      const latestKeyBySender = new Map();
+      const recentSnapshotKeys = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        try {
+          const envelope = JSON.parse(lines[i]);
+          if (envelope && envelope.time && envelope.time > lastSeenServerTime) {
+            lastSeenServerTime = envelope.time;
+          }
+          if (envelope && envelope.event === 'message' && envelope.message) {
+            const parsed = JSON.parse(envelope.message);
+            if (!parsed || typeof parsed !== 'object') continue;
+
+            if (parsed.key && typeof parsed.key === 'string') {
+              const senderKey = parsed.sender || `anon_${i}`;
+              latestKeyBySender.set(senderKey, parsed.key);
+              if (!recentSnapshotKeys.includes(parsed.key)) {
+                recentSnapshotKeys.push(parsed.key);
+              }
+            }
+            if (parsed.type && parsed.type !== 'snapshot_ptr' && parsed.type !== 'sync_req') {
+              applyIncomingCloudData(parsed);
+            }
+          }
+        } catch (e) {}
+      }
+
+      const keysToMerge = new Set([
+        ...Array.from(latestKeyBySender.values()).slice(-4),
+        ...recentSnapshotKeys.slice(-4)
+      ]);
+
+      for (const k of keysToMerge) {
+        await fetchAndApplySnapshotKey(k, force);
+      }
+    }
+
+    async function recoverFromLegacyTopicsOnce() {
+      const { recoveredBlobKeys } = scanAllLocalStorageForRecovery();
+      for (const bKey of recoveredBlobKeys) {
+        await fetchAndApplySnapshotKey(bKey, false);
+      }
+
+      for (const legacyTopic of LEGACY_SYNC_TOPICS) {
+        try {
+          const res = await fetchWithTimeout(`https://ntfy.sh/${legacyTopic}/json?poll=1&since=all`, {}, 4500);
+          if (res.ok) {
+            const text = await res.text();
+            await parseAndApplyNtfyLines(text, false);
+          }
+        } catch (e) {}
+      }
+    }
+
     async function pullLatestFromAllClouds(force = false) {
       const now = Date.now();
       if (isSyncPulling) return;
-      if (!force && now - lastPollTimestamp < 5000) return;
+      if (!force && now - lastPollTimestamp < 4000) return;
 
       isSyncPulling = true;
       lastPollTimestamp = now;
 
       try {
-        // 1. 기존에 알고 있는 스냅샷 키가 있으면 우선 조회
         if (globalSyncBlobId) {
           await fetchAndApplySnapshotKey(globalSyncBlobId, force);
         }
 
-        // 2. 최근 클라우드 이벤트 히스토리 조회 후 모든 발신 기기(신랑 접수대, 신부 접수대 등)별 최신 스냅샷을 빠짐없이 병합
-        const streamRes = await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=24h`, {}, 4500);
+        const sinceParam = (force || lastSeenServerTime === 0) ? 'all' : String(lastSeenServerTime);
+        const streamRes = await fetchWithTimeout(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/json?poll=1&since=${sinceParam}`, {}, 5000);
         if (streamRes.ok) {
           const text = await streamRes.text();
-          const lines = text.trim().split('\n').filter(Boolean);
-          const latestKeyBySender = new Map();
-          const recentSnapshotKeys = [];
-
-          for (let i = 0; i < lines.length; i++) {
-            try {
-              const envelope = JSON.parse(lines[i]);
-              if (envelope && envelope.event === 'message' && envelope.message) {
-                const parsed = JSON.parse(envelope.message);
-                if (!parsed || typeof parsed !== 'object') continue;
-
-                if (parsed.key && typeof parsed.key === 'string') {
-                  const senderKey = parsed.sender || `anon_${i}`;
-                  latestKeyBySender.set(senderKey, parsed.key);
-                  if (!recentSnapshotKeys.includes(parsed.key)) {
-                    recentSnapshotKeys.push(parsed.key);
-                  }
-                }
-                if (parsed.type && parsed.type !== 'snapshot_ptr' && parsed.type !== 'sync_req') {
-                  applyIncomingCloudData(parsed);
-                }
-              }
-            } catch (e) {}
-          }
-
-          // 각 기기(신랑측 기기, 신부측 기기 등)가 마지막으로 올린 스냅샷과 최근 스냅샷을 모두 순회 병합
-          const keysToMerge = new Set([
-            ...Array.from(latestKeyBySender.values()),
-            ...recentSnapshotKeys.slice(-5)
-          ]);
-
-          for (const k of keysToMerge) {
-            await fetchAndApplySnapshotKey(k, force);
-          }
-
+          await parseAndApplyNtfyLines(text, force);
           setCloudBadgeState('cloud');
         }
       } catch (e) {
@@ -2892,10 +2922,11 @@
     }
 
     async function forceManualCloudSync() {
-      showToast('PC·모바일 실시간 장부 데이터를 동기화하고 있습니다...', 'info');
+      showToast('PC·모바일 전체 기기의 최신 데이터를 동기화하고 있습니다...', 'info');
+      await recoverFromLegacyTopicsOnce();
       await pullLatestFromAllClouds(true);
-      await broadcastLocalStateToPeers();
-      showToast('신랑측·신부측 최신 장부 동기화가 완료되었습니다!', 'success');
+      await uploadFullSnapshotToCloud(true);
+      showToast('PC·모바일 최신 장부 양방향 동기화가 완료되었습니다!', 'success');
     }
 
     function connectRealtimeSseStream() {
@@ -2904,14 +2935,17 @@
           globalEventSource.close();
           globalEventSource = null;
         }
-        // since=24h 옵션으로 연결 즉시 최근 24시간 내 PC·모바일 등록 내역을 모두 스트리밍 수신
-        globalEventSource = new EventSource(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/sse?since=24h`);
+        // SSE는 연결 시점 이후의 실시간 이벤트만 수신하여 초기 연결 시 재전송 폭주(HTTP 429)를 원천 방지
+        globalEventSource = new EventSource(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}/sse`);
         globalEventSource.onopen = () => {
           setCloudBadgeState('cloud');
         };
         globalEventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            if (data && data.time && data.time > lastSeenServerTime) {
+              lastSeenServerTime = data.time;
+            }
             if (data && data.message) {
               handleRawEnvelopeMessage(data.message);
               setCloudBadgeState('cloud');
@@ -2919,44 +2953,59 @@
           } catch (e) {}
         };
         globalEventSource.onerror = () => {
-          // 연결이 일시 끊기면 5초 후 자동 재연결
           setTimeout(() => {
             if (!globalEventSource || globalEventSource.readyState === EventSource.CLOSED) {
               connectRealtimeSseStream();
             }
-          }, 5000);
+          }, 6000);
         };
       } catch (e) {}
     }
 
     function startGlobalRealtimeStream() {
+      // 동일 PC 내 다중 브라우저 탭 즉시 연동
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          localBroadcastChannel = new BroadcastChannel('merrydam_local_tab_sync_v6');
+          localBroadcastChannel.onmessage = (ev) => {
+            if (ev.data && ev.data.sender !== CLIENT_INSTANCE_ID && ev.data.snapshot) {
+              applyIncomingCloudData(ev.data.snapshot);
+            }
+          };
+        }
+        window.addEventListener('storage', (ev) => {
+          if (ev.key === LOCAL_WEDDINGS_KEY || ev.key === LOCAL_RECORDS_KEY) {
+            try {
+              const wList = JSON.parse(localStorage.getItem(LOCAL_WEDDINGS_KEY) || '[]');
+              const rList = JSON.parse(localStorage.getItem(LOCAL_RECORDS_KEY) || '[]');
+              applyIncomingCloudData({ weddings: wList, records: rList });
+            } catch (e) {}
+          }
+        });
+      } catch (e) {}
+
       connectRealtimeSseStream();
 
-      pullLatestFromAllClouds(true).then(() => {
-        // 현재 기기에 저장되어 있는 예식이나 접수 내역을 클라우드에 즉시 공유
-        const snap = getCustomDataSnapshot();
-        if (snap.weddings.length > 0 || snap.records.length > 0) {
-          broadcastLocalStateToPeers();
-        }
-        // 다른 열려 있는 PC/모바일 기기에게도 최신 상태 요청 신호 전송
-        fetch(`https://ntfy.sh/${GLOBAL_SYNC_TOPIC}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body: JSON.stringify({ type: 'sync_req', sender: CLIENT_INSTANCE_ID, ts: Date.now() })
-        }).catch(() => {});
-      });
+      (async () => {
+        // 1. 이전 버전 토픽(v5 등)에 다른 PC가 올려둔 예식/하객 데이터까지 모두 복원
+        await recoverFromLegacyTopicsOnce();
+        // 2. 현재 활성 토픽(v6)에서 전체 히스토리 병합
+        await pullLatestFromAllClouds(true);
+        // 3. 현재 PC/모바일이 가진 전체 통합본을 클라우드에 1회 업로드하여 모든 기기 상태 통일
+        await uploadFullSnapshotToCloud(true);
+      })();
 
-      // Rate-limit(429)에 걸리지 않도록 18초 주기로 여유 있게 백그라운드 동기화 점검
+      // 8초 주기로 새 메시지만 가볍게 폴링 (lastSeenServerTime 이후만 조회하므로 429 속도제한 발생 안 함)
       setInterval(() => {
         pullLatestFromAllClouds(false);
-      }, 18000);
+      }, 8000);
 
       window.addEventListener('focus', () => {
-        pullLatestFromAllClouds(true);
+        pullLatestFromAllClouds(false);
       });
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          pullLatestFromAllClouds(true);
+          pullLatestFromAllClouds(false);
         }
       });
     }
@@ -2964,12 +3013,12 @@
     async function syncLocalDataToCloud() {
       if (!db || !currentUser) return;
       try {
-        const customWeddings = weddings.filter(w => w.id !== VIRTUAL_TEST_WEDDING_ID && w.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(w.id));
+        const customWeddings = weddings.filter(w => !isDummyTestWedding(w) && !deletedIdsSet.has(w.id));
         for (const w of customWeddings) {
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'weddings', w.id), w);
         }
 
-        const customRecords = allRecords.filter(r => !String(r.id).startsWith('vrec_') && !String(r.id).startsWith('def_rec_') && !deletedIdsSet.has(r.id));
+        const customRecords = allRecords.filter(r => !isDummyTestRecord(r) && !deletedIdsSet.has(r.id));
         for (const r of customRecords) {
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cash_gifts', r.id), r);
         }
@@ -3082,7 +3131,7 @@
           const cloudIds = new Set();
           snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (data && data.id && !deletedIdsSet.has(data.id)) {
+            if (data && data.id && !isDummyTestWedding(data) && !deletedIdsSet.has(data.id)) {
               map.set(data.id, data);
               cloudIds.add(data.id);
             }
@@ -3090,7 +3139,7 @@
 
           // 현재 기기에만 있고 아직 클라우드에 올라가지 않은 예식 보존 및 업로드
           weddings.forEach(localW => {
-            if (localW.id !== VIRTUAL_TEST_WEDDING_ID && localW.id !== DEFAULT_SAMPLE_WEDDING_ID && !deletedIdsSet.has(localW.id)) {
+            if (!isDummyTestWedding(localW) && !deletedIdsSet.has(localW.id)) {
               if (!cloudIds.has(localW.id)) {
                 map.set(localW.id, localW);
                 writeCloudDoc('weddings', localW.id, localW);
@@ -3099,6 +3148,7 @@
           });
 
           weddings = Array.from(map.values());
+          consolidateWeddingsAndRecords();
           sortWeddingsByRecent();
           saveLocalBackup();
           renderAdminWeddingsList();
@@ -3119,16 +3169,12 @@
           isCloudActive = true;
           setCloudBadgeState('cloud');
 
-          const { seededRecords } = getSeededDefaults();
           const map = new Map();
-          seededRecords.forEach(r => {
-            if (!deletedIdsSet.has(r.id)) map.set(r.id, r);
-          });
 
           const cloudRecIds = new Set();
           snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (data && data.id && !deletedIdsSet.has(data.id)) {
+            if (data && data.id && !isDummyTestRecord(data) && !deletedIdsSet.has(data.id)) {
               map.set(data.id, data);
               cloudRecIds.add(data.id);
             }
@@ -3136,7 +3182,7 @@
 
           // 현재 기기에만 있고 클라우드에 아직 반영되지 않은 접수 내역 보존 및 자동 업로드
           allRecords.forEach(localR => {
-            if (!String(localR.id).startsWith('vrec_') && !String(localR.id).startsWith('def_rec_') && !deletedIdsSet.has(localR.id)) {
+            if (!isDummyTestRecord(localR) && !deletedIdsSet.has(localR.id)) {
               if (!cloudRecIds.has(localR.id)) {
                 map.set(localR.id, localR);
                 writeCloudDoc('cash_gifts', localR.id, localR);
@@ -3145,6 +3191,7 @@
           });
 
           allRecords = Array.from(map.values());
+          consolidateWeddingsAndRecords();
           saveLocalBackup();
           if (activeWedding) {
             filterRecordsForActiveWedding();
