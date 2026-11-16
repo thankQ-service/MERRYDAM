@@ -114,14 +114,20 @@
       <!-- Subtle Gold Accent Header Line -->
       <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#DFCBB2] via-[#C5A059] to-[#DFCBB2]"></div>
 
-      <!-- 카카오톡 인앱 브라우저 접속 시 안내 및 외부 브라우저 원클릭 열기 배너 -->
-      <div id="kakaoInAppNotice" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-3 text-left flex items-center justify-between gap-2">
-        <div class="text-[11px] text-amber-900 leading-snug">
-          <strong class="font-extrabold block text-amber-950"><i class="fa-solid fa-comment-sms mr-1 text-amber-700"></i>카카오톡 브라우저 접속 중</strong>
-          바로 비밀번호 입장이 가능하며, 엑셀·PDF 저장 시 외부 브라우저 열기를 권장합니다.
+      <!-- 카카오톡 등 인앱 브라우저 접속 시: 다른 브라우저로 열기 필수 안내 및 대형 버튼 -->
+      <div id="kakaoInAppNotice" class="hidden bg-amber-50/95 border-2 border-amber-400 rounded-2xl p-4 text-left space-y-3 shadow-sm">
+        <div class="flex items-start space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-sm mt-0.5 shadow-2xs">
+            <i class="fa-solid fa-up-right-from-square"></i>
+          </div>
+          <div class="text-xs text-amber-950 leading-relaxed">
+            <strong class="font-extrabold text-sm block text-stone-900 mb-0.5">카카오톡 접속 안내 (필독)</strong>
+            카카오톡 내부 화면에서는 실시간 연동이 제한됩니다. 아래 버튼을 눌러 <strong class="underline decoration-amber-600 decoration-2">다른 브라우저(크롬·사파리)로 열어야 실시간 장부</strong>를 정확히 보실 수 있습니다.
+          </div>
         </div>
-        <button type="button" onclick="openExternalBrowserFromKakao()" class="btn-tactile px-2.5 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-[11px] font-bold whitespace-nowrap flex-shrink-0 shadow-2xs">
-          크롬/사파리 열기
+        <button type="button" onclick="openExternalBrowserFromKakao()" class="btn-tactile w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 text-xs sm:text-sm font-extrabold flex items-center justify-center space-x-2 shadow-md transition-all">
+          <i class="fa-solid fa-compass text-sm"></i>
+          <span>다른 브라우저(크롬·사파리)로 열기</span>
         </button>
       </div>
 
@@ -176,6 +182,14 @@
         <p class="text-[11px] text-stone-500 leading-relaxed">
           신랑·신부님 또는 현장 담당자에게 부여된<br> 전용 비밀번호를 입력하시면 즉시 안전하게 입장합니다.
         </p>
+
+        <!-- 카카오톡 등 모바일 접속자를 위한 상시 외부 브라우저 전환 버튼 -->
+        <div class="pt-2 border-t border-stone-200/80">
+          <button type="button" onclick="openExternalBrowserFromKakao()" class="btn-tactile w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all">
+            <i class="fa-solid fa-arrow-up-right-from-square text-amber-700 text-[11px]"></i>
+            <span>카톡 접속 시: 다른 브라우저로 열기 (실시간 장부 보기)</span>
+          </button>
+        </div>
       </div>
 
       <!-- Bottom Sub-Actions: Only Admin Center Access (새 예식 등록은 총괄 관리자 센터 내부로 이전) -->
@@ -3843,19 +3857,24 @@
 
     function detectKakaoInAppBrowser() {
       const ua = navigator.userAgent || '';
-      if (/KAKAOTALK/i.test(ua)) {
+      if (/KAKAOTALK|NAVER|Instagram|Line|FBAN|FBAV/i.test(ua)) {
         document.getElementById('kakaoInAppNotice')?.classList.remove('hidden');
       }
     }
 
     function openExternalBrowserFromKakao() {
-      const currentUrl = window.location.href;
+      const cleanUrl = window.location.href.split('?')[0].split('#')[0];
       const ua = navigator.userAgent || '';
       if (/KAKAOTALK/i.test(ua)) {
-        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
-      } else {
-        window.open(currentUrl, '_blank');
+        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(cleanUrl);
+        return;
       }
+      if (/android/i.test(ua)) {
+        const noProtocol = cleanUrl.replace(/^https?:\/\//i, '');
+        window.location.href = `intent://${noProtocol}#Intent;scheme=https;package=com.android.chrome;end`;
+        return;
+      }
+      window.open(cleanUrl, '_blank');
     }
 
     function toggleGatePasswordVisibility() {
@@ -4906,10 +4925,7 @@
       const maskedG = maskName(target.groomName);
       const maskedB = maskName(target.brideName);
       const maskedV = maskVenue(target.venue);
-      const baseUrl = window.location.href.split('?')[0].split('#')[0];
-      const wToken = encodeWeddingTokenForUrl(target);
-      const sParam = globalSyncBlobId ? `&s=${encodeURIComponent(globalSyncBlobId)}` : '';
-      const shareUrl = wToken ? `${baseUrl}?w=${wToken}${sParam}` : baseUrl;
+      const shareUrl = window.location.href.split('?')[0].split('#')[0];
 
       if (target.isSeparateMode) {
         toggleBox?.classList.remove('hidden');
@@ -4917,19 +4933,19 @@
           if (btnGroom) btnGroom.className = 'py-1.5 px-2 rounded-lg text-xs font-bold text-stone-600 hover:bg-blue-50 transition-all';
           if (btnBride) btnBride.className = 'py-1.5 px-2 rounded-lg text-xs font-extrabold bg-rose-600 text-white shadow-xs transition-all';
           if (badgeEl) badgeEl.innerText = `${target.date} [신부 ${maskedB}측 전용]`;
-          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신부측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신부측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신부측 전용 접속 비밀번호: ${target.bridePassword}\n※ 카톡에서 링크 클릭 후 위 비밀번호를 입력하시면 신부측 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
+          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신부측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신부측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신부측 전용 접속 비밀번호: ${target.bridePassword}\n※ 카카오톡에서 링크 클릭 후 [다른 브라우저로 열기] 버튼을 눌러 접속하시면 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
         } else {
           if (btnGroom) btnGroom.className = 'py-1.5 px-2 rounded-lg text-xs font-extrabold bg-blue-600 text-white shadow-xs transition-all';
           if (btnBride) btnBride.className = 'py-1.5 px-2 rounded-lg text-xs font-bold text-stone-600 hover:bg-rose-50 transition-all';
           if (badgeEl) badgeEl.innerText = `${target.date} [신랑 ${maskedG}측 전용]`;
-          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신랑측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신랑측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑측 전용 접속 비밀번호: ${target.groomPassword}\n※ 카톡에서 링크 클릭 후 위 비밀번호를 입력하시면 신랑측 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
+          previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내 - 신랑측 전용]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB} (신랑측 단독 비공개 장부)\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑측 전용 접속 비밀번호: ${target.groomPassword}\n※ 카카오톡에서 링크 클릭 후 [다른 브라우저로 열기] 버튼을 눌러 접속하시면 실시간 장부 및 엑셀·PDF 다운로드가 가능합니다.`;
         }
       } else {
         toggleBox?.classList.add('hidden');
         if (badgeEl) {
           badgeEl.innerText = `${target.date} [${maskedG} ♥ ${maskedB}]`;
         }
-        previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 카톡에서 위 링크를 누르시고 전용 비밀번호를 입력하시면 실시간 장부 조회 및 엑셀·PDF 다운로드가 가능합니다.`;
+        previewEl.value = `[메리담 프리미엄 스마트 축의대 접속 안내]\n- 일시: ${target.date} ${target.time}\n- 예식: 신랑 ${maskedG} ♥ 신부 ${maskedB}\n- 장소: ${maskedV || '예식장'}\n- 접속 링크: ${shareUrl}\n- 신랑·신부 전용 접속 비밀번호: ${target.password}\n※ 카카오톡에서 링크 클릭 후 [다른 브라우저로 열기] 버튼을 눌러 접속하시면 실시간 장부 조회 및 엑셀·PDF 다운로드가 가능합니다.`;
       }
     }
 
