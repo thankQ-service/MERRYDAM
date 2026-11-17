@@ -2272,6 +2272,7 @@
     const VIRTUAL_TEST_WEDDING_ID = "wed_20261114_test255";
     const DEFAULT_SAMPLE_WEDDING_ID = "wed_default_1234";
     const RESTORED_JEON_LEE_WEDDING_ID = "wed_restored_jeon_hoontaek_lee_sojung";
+    const VIRTUAL_DEMO_WEDDING_ID = "wed_virtual_demo_kim_han";
 
     const LOCAL_WEDDINGS_KEY = "merrydam_weddings_store_v3";
     const LOCAL_RECORDS_KEY = "merrydam_records_store_v3";
@@ -2516,12 +2517,96 @@
       return false;
     }
 
+    function generateVirtualDemoRecords() {
+      const coupleKey = '김도윤|한지민';
+      const baseTime = 1794710000000;
+      const groomGuests = [
+        { name: '김성훈', amount: 200000, adult: 2, child: 0, memo: '신랑 외삼촌', time: '12:15' },
+        { name: '박준영', amount: 100000, adult: 1, child: 0, memo: '대학동기', time: '12:18' },
+        { name: '이민수', amount: 100000, adult: 1, child: 1, memo: '직장동료 (개발팀)', time: '12:20' },
+        { name: '최현우', amount: 50000, adult: 1, child: 0, memo: '고교동창', time: '12:22' },
+        { name: '정태윤', amount: 150000, adult: 2, child: 1, memo: '입사동기', time: '12:25' },
+        { name: '강동원', amount: 300000, adult: 2, child: 0, memo: '작은아버지', time: '12:27' },
+        { name: '조현석', amount: 100000, adult: 1, child: 0, memo: '축구동호회', time: '12:30' },
+        { name: '윤재호', amount: 0, adult: 1, child: 0, memo: '계좌이체 완료 (빈봉투)', time: '12:32' },
+        { name: '장민기', amount: 50000, adult: 0, child: 0, memo: '대리접수 (식권미지급)', time: '12:35' },
+        { name: '임승환', amount: 100000, adult: 1, child: 0, memo: '군대동기', time: '12:37' },
+        { name: '한상우', amount: 200000, adult: 2, child: 2, memo: '사촌형 가족', time: '12:40' },
+        { name: '오세훈', amount: 100000, adult: 1, child: 0, memo: '거래처 팀장', time: '12:42' },
+        { name: '서지훈', amount: 50000, adult: 1, child: 0, memo: '중학교 동창', time: '12:44' },
+        { name: '신동혁', amount: 100000, adult: 1, child: 0, memo: '본부 파트장', time: '12:46' },
+        { name: '권혁진', amount: 500000, adult: 2, child: 0, memo: '큰아버지', time: '12:48' },
+        { name: '황인범', amount: 100000, adult: 1, child: 0, memo: '대학선배', time: '12:50' },
+        { name: '안재현', amount: 150000, adult: 2, child: 0, memo: '이웃사촌 부부', time: '12:52' },
+        { name: '송민호', amount: 100000, adult: 1, child: 0, memo: '고교친구', time: '12:55' }
+      ];
+
+      const brideGuests = [
+        { name: '한지혜', amount: 300000, adult: 2, child: 1, memo: '신부 큰이모', time: '12:16' },
+        { name: '김서연', amount: 100000, adult: 1, child: 0, memo: '대학동기', time: '12:19' },
+        { name: '이지은', amount: 150000, adult: 2, child: 0, memo: '직장선배', time: '12:21' },
+        { name: '박소연', amount: 100000, adult: 1, child: 0, memo: '고교동창', time: '12:24' },
+        { name: '최유진', amount: 50000, adult: 1, child: 0, memo: '필라테스 모임', time: '12:26' },
+        { name: '정수빈', amount: 200000, adult: 1, child: 0, memo: '단짝친구', time: '12:29' },
+        { name: '강미나', amount: 0, adult: 1, child: 0, memo: '사전 계좌이체 (빈봉투)', time: '12:31' },
+        { name: '조은비', amount: 100000, adult: 1, child: 1, memo: '전 직장동료', time: '12:34' },
+        { name: '윤보미', amount: 100000, adult: 1, child: 0, memo: '대학원 동기', time: '12:36' },
+        { name: '장예원', amount: 50000, adult: 0, child: 0, memo: '봉투만 전달 (식권미지급)', time: '12:39' },
+        { name: '임나연', amount: 500000, adult: 2, child: 0, memo: '외숙모', time: '12:41' },
+        { name: '한소희', amount: 100000, adult: 1, child: 0, memo: '디자인팀 동료', time: '12:43' },
+        { name: '오하영', amount: 150000, adult: 2, child: 0, memo: '사촌언니 부부', time: '12:45' },
+        { name: '서현진', amount: 100000, adult: 1, child: 0, memo: '고등학교 친구', time: '12:49' },
+        { name: '신세경', amount: 200000, adult: 2, child: 1, memo: '작은이모 가족', time: '12:53' },
+        { name: '권유리', amount: 100000, adult: 1, child: 0, memo: '동아리 후배', time: '12:56' }
+      ];
+
+      const demoRecords = [];
+      groomGuests.forEach((g, idx) => {
+        demoRecords.push({
+          id: `demo_rec_g_${idx + 1}`,
+          weddingId: VIRTUAL_DEMO_WEDDING_ID,
+          weddingCoupleKey: coupleKey,
+          envelopeNum: idx + 1,
+          side: 'groom',
+          guestName: g.name,
+          amount: g.amount,
+          adultTickets: g.adult,
+          childTickets: g.child,
+          tickets: g.adult + g.child,
+          memo: g.memo,
+          timeStr: g.time,
+          createdAt: baseTime + (idx * 1000),
+          updatedAt: baseTime + (idx * 1000)
+        });
+      });
+
+      brideGuests.forEach((b, idx) => {
+        demoRecords.push({
+          id: `demo_rec_b_${idx + 1}`,
+          weddingId: VIRTUAL_DEMO_WEDDING_ID,
+          weddingCoupleKey: coupleKey,
+          envelopeNum: idx + 1,
+          side: 'bride',
+          guestName: b.name,
+          amount: b.amount,
+          adultTickets: b.adult,
+          childTickets: b.child,
+          tickets: b.adult + b.child,
+          memo: b.memo,
+          timeStr: b.time,
+          createdAt: baseTime + 500 + (idx * 1000),
+          updatedAt: baseTime + 500 + (idx * 1000)
+        });
+      });
+
+      return demoRecords;
+    }
+
     function getSeededDefaults() {
-      // 테스트 예식(박민준·정서연 255명, 전형민·최윤정 샘플)은 제거하고
-      // 요청하신 [신랑 전훈택 ♥ 신부 이소정] 예식을 기본 복원 데이터로 보장합니다.
       const today = new Date();
       const defaultDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const seededWeddings = [];
+      let seededRecords = [];
 
       if (!deletedIdsSet.has(RESTORED_JEON_LEE_WEDDING_ID)) {
         seededWeddings.push({
@@ -2539,7 +2624,24 @@
         });
       }
 
-      return { seededWeddings, seededRecords: [] };
+      if (!deletedIdsSet.has(VIRTUAL_DEMO_WEDDING_ID)) {
+        seededWeddings.push({
+          id: VIRTUAL_DEMO_WEDDING_ID,
+          date: defaultDateStr,
+          time: '13:00 (1시)',
+          groomName: '김도윤',
+          brideName: '한지민',
+          venue: '메리담 더그랜드홀 2층 (테스트 예식)',
+          isSeparateMode: false,
+          password: '5555',
+          groomPassword: '',
+          bridePassword: '',
+          createdAt: 1794710000000
+        });
+        seededRecords = generateVirtualDemoRecords().filter(r => !deletedIdsSet.has(r.id));
+      }
+
+      return { seededWeddings, seededRecords };
     }
 
     function scanAllLocalStorageForRecovery() {
@@ -2819,7 +2921,7 @@
       // 혹시 이전에 전훈택·이소정 복원 ID가 삭제 목록에 들어갔다면 해제
       deletedIdsSet.delete(RESTORED_JEON_LEE_WEDDING_ID);
 
-      const { seededWeddings } = getSeededDefaults();
+      const { seededWeddings, seededRecords } = getSeededDefaults();
       const { recoveredWeddings, recoveredRecords } = scanAllLocalStorageForRecovery();
 
       let storedWeddings = [];
@@ -2844,6 +2946,9 @@
       weddings = Array.from(wMap.values());
 
       const rMap = new Map();
+      seededRecords.forEach(r => {
+        if (!isDummyTestRecord(r)) rMap.set(r.id, r);
+      });
       recoveredRecords.forEach(r => {
         if (!isDummyTestRecord(r)) rMap.set(r.id, r);
       });
@@ -3802,7 +3907,13 @@
           isCloudActive = true;
           setCloudBadgeState('cloud');
 
+          const { seededRecords } = getSeededDefaults();
           const map = new Map();
+          seededRecords.forEach(r => {
+            if (!deletedIdsSet.has(r.id) && !deletedIdsSet.has(r.weddingId)) {
+              map.set(r.id, r);
+            }
+          });
 
           const cloudRecIds = new Set();
           snapshot.forEach(docSnap => {
